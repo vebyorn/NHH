@@ -1,0 +1,225 @@
+---
+title: "FIE450 Notes"
+output: html_document
+---
+# Part 1: Standard Volatility, EWMA and GARCH Models
+## Standard Volatility Model
+### Load the data
+Make sure your data is in the same folder as your R script.
+Rudimentary loading of data, processing and plotting.
+```{r}
+obx <- read.csv("OBX.csv") # read in the data
+names(obx) <- c("Date", "Close", "Volume") # rename the columns
+obx$Date <- as.Date(obx$Date) # convert the date column to a date
+obx$Volume <- NULL # remove the volume column
+plot(obx$Date, obx$Close, type = "l", xlab = "Date", ylab = "Close", main = "OBX") # plot the dataframe
+```
+
+### Large confidence interval
+Nailing down the volatility is a difficult task.
+This is due to the fact that there is a large confidence interval.
+```{r}
+r <- na.omit(obx$r) # remove the NA values from the returns
+n <- length(r) # the number of observations
+SE <- sd(r)/sqrt(n) * 250 # calculate the standard error
+
+p <- 0.99 # confidence level
+z <- -qnorm((1-p)/2) # calculate the z-score
+c(mu - z*SE, mu + z*SE) # calculate the confidence interval
+```
+### Logarithmic returns (log returns)
+Declare new columns in R with the `$` operator.
+We create a new vector with the c() function.
+
+The `NA` is added for the first row, since there is no previous day to calculate the return.
+The `diff()` function calculates the difference between two consecutive elements in a vector.
+>Note that this implies a backwards-gazing calculation.
+
+The `log()` function calculates the natural logarithm of the Close price.
+We declare the mu and sigma variables to be the mean and standard deviation of the returns.
+>Note that we use the `na.rm = TRUE` argument to remove the `NA` values from the calculation.
+>Note that we multiply the mean by 250 to get the annualized mean. These are the rough number of trading days per year.
+>Note that we multiply the standard deviation by the SQUARE ROOT of 250 to get the annualized standard deviation.
+```{r}
+obx$r <- c(NA, diff(log(obx$Close))) # calculate the log returns
+mu <- mean(obx$r, na.rm = TRUE) * 250 # calculate the mean of the returns
+sigma <- sd(obx$r, na.rm = TRUE) * sqrt(250) # calculate the standard deviation of the returns
+
+mu # print the mean
+sigma # print the standard deviation
+head(obx) # print the first 6 rows of the dataframe
+```
+
+We will continue with this return vector.
+```{r}
+r <- na.omit(obx$r) # remove the NA values from the returns
+head(r) # notice that the NA value is gone
+```
+
+## EWMA Model
+The EWMA model is backwards-gazing, like the previous model, but weighs the most recent data more than older data.
+We begin by declaring the necessary variables, including the EWMA-unique lambda variable.
+```{r}
+n <- length(obx$r) # the number of observations
+lambda <- 0.94 # the lambda value recommended by Engle
+
+r.vec <- r[length(r):1] # reversed returns
+lambda.vec <- lambda^(0:(n-1)) # the lambda vector
+
+head(lambda.vec) # notice the exponential decay
+```
+### EWMA: Simplest form
+```{r}
+sigma2 <- (1 - lambda) * sum(lambda.vec * r.vec^2) # ignore the warning
+sigma <- sqrt(sigma2) # calculate the standard deviation
+sigma * sqrt(250) # calculate the annualized standard deviation
+```
+### EWMA: Simpler with R
+The variables declared above are good at illustrating the concept, but we will use R commands instead.
+The code below displays the rev() function, which is identical to what we did to create the `r.vec` variable.
+There is however no way to jog around the lambda^(0:(n-1)) vector, so we will keep that one.
+```{r}
+sigma2 <- sum((1-lambda) * lambda^(0:(n-1)) * rev(r)^2) # ignore the warning
+sigma <- sqrt(sigma2) # calculate the standard deviation
+sigma * sqrt(250) # calculate the annualized standard deviation
+```
+
+### EWMA: Looped
+The code below is the same as the previous code, but with a loop.
+Notice however that looping in R is computationally slow.
+```{r}
+sigma2 <- c() # declare an empty vector
+
+for (i in seq_along(r)) { # loop through the returns
+  x <- sum((1-lambda) * lambda^(0:(i-1)) * rev(r[1:i])^2) # calculate the sum
+  sigma2 <- c(sigma2, x) # append the value to the vector
+} # end of loop
+
+sigma <- sqrt(sigma2) # calculate the standard deviation
+```
+
+### EWMA: Optimisation (Finding the best lambda)
+We begin by computing the EWMA variance.
+We use a self-defined function which we name ewma.var.
+```{r}
+ewma.var <- function(r, lambda) { # define the function
+  sigma2 <- sum((1-lambda) * lambda^(0:(length(r) - 1)) * rev(r)^2) # calculate the variance
+  return(sigma2) # return the variance
+} # end of function
+
+ewma.var(r, 0.94) # using the function to calculate the variance
+sqrt(ewma.var(r, 0.94)) * sqrt(250) # calculate the annualized standard deviation, it is identical to the previous result
+```
+
+Great. Now we can use our ewma.var() function to calculate historical ewma variances.
+Let's nest our function in a new function.
+```{r}
+hist.ewma.var <- function(r, lambda) { # define the function
+  sigma2 <- c() # declare an empty vector for our variances
+  for (i in seq_along(r)) { # loop through the returns
+    sigma2 <- c(sigma2, ewma.var(r[1:i], lambda)) # append the value to the vector
+  } # end of loop
+  return(sigma2) # return the vector
+} # end of function
+
+a <- hist.ewma.var(r, 0.94) # testing the function using the returns and lambda
+summary(a) # print the summary of the vector
+```
+
+Now we can create the log-likelihood function.
+We will use a non-linear minimisation function with bounds: nlminb(). The computation is slow.
+>Take note of the negative sign in front of the log-likelihood function in the return.
+>This is because we want to minimize the negative log-likelihood function.
+>Minimising the negative log-likelihood function is the same as maximising the log-likelihood function.
+>ALWAYS check documentation on R minimisation and maximisation functions. As some functions take arguments in different order.
+```{r}
+ewma.ll.fun <- function(lambda, r) { # define the function
+  sigma2 <- hist.ewma.var(r, lambda) # calculate the historical variances
+  sigma2 <- sigma2[-length(sigma2)] # remove the last value
+  r <- r[-1] # remove the first value
+  log.ll <- sum(-log(sigma2) - r^2/sigma2) # calculate the log-likelyhood
+  return(-log.ll) # return the negative log-likelyhood
+} # end of function
+
+res <- nlminb(0.5, ewma.ll.fun, lower = 1e-6, upper = 1 - 1e-6, r = r) # minimisation of the negative ll-function
+res # print the results
+res$par # = lambda value
+res$objective # = negative log-likelyhood
+```
+
+Now let us find out if all that effort gave us a better estimate of the standard deviation.
+As you'll find out, it did, in a rather anti-climatic way. As you end up with the same standard deviation as the one recommended by Engle.
+```{r}
+# old lambda
+sqrt(ewma.var(r, lambda = 0.94) * 250) # the old standard deviation based on the recommended lambda from Engle
+
+# best lambda
+sqrt(ewma.var(r, lambda = res$par) * 250) # our new standard deviation based on the lambda we found through optimisation
+```
+
+## GARCH Model
+### GARCH: Variance
+The generalised autoregressive conditional heteroskedasticity (GARCH) model is a more advanced model.
+It is a backwards-gazing model, but it also takes into account the volatility of the previous period.
+We begin by declaring the necessary variables.
+r: the vector of returns
+omega: the constant
+alpha: the lagged squared returns coefficient
+beta: the lagged squared volatility coefficient
+```{r}
+garch.var <- function(r, omega, alpha, beta) { # define the function
+  sigma2 <- r[1]^2 # the first variance is the first return squared
+  for (i in 2:length(r)) { # loop through the returns
+    sigma2 <- c(sigma2, omega + alpha * r[i]^2 + beta * sigma2[i -1]) # append the value to the vector
+  } # end of loop
+return(sigma2) # return the vector
+} # end of function
+
+a <- garch.var(r, omega = 0.001, alpha = 0.4, beta = 0.4) # testing the function
+length(a) # number of elements in the vector
+```
+
+### GARCH: Log-Likelihood, Long-term Variance and Standard Deviation
+Now we can create the log-likelihood function.
+We will use a non-linear minimisation function with bounds: nlminb(). The computation is slow.
+```{r}
+garch.ll.fn <- function(par, r) { # define the function
+  omega <- par[1] # assign the parameters
+  alpha <- par[2] # ^
+  beta <- par[3] # ^
+  sigma2 <- garch.var(r, omega, alpha, beta) # calculate the historical variances
+  r <- r[-1] # remove the first value
+  sigma2 <- sigma2[-length(sigma2)] # remove the last value
+  ll <- sum(-log(sigma2) - r^2/sigma2) # calculate the log-likelihood
+  return(-ll) # return the negative log-likelyhood
+}
+
+res <- nlminb(c(0.001, 0.3, 0.3), garch.ll.fn, lower = 1e-6, upper = 1 - 1e-6, r = r) # minimisation of the negative ll-function (maximisation)
+omega <- res$par[1] # assign the parameters
+alpha <- res$par[2] # ^
+beta <- res$par[3] # ^
+
+gamma <- 1 - alpha - beta # the lagged volatility coefficient
+VL <- omega/gamma # long-term variance
+sqrt(VL*250) # annualized standard deviation
+```
+
+### GARCH: 1 Year Volatility Forecast
+We can now use the GARCH model to forecast the volatility of the next year.
+We will use the long-term variance and the last 250 returns.
+```{r}
+ewma.sigma2 <- ewma.var(r, lambda = 0.93) # historical variance
+sqrt(ewma.sigma2*250) # historical standard deviation
+
+m <- 249 # number of trading days remaining in the year
+garch.sigma2 <- garch.var(r, omega, alpha, beta) # historical variance
+
+garch.sigma2.t <- garch.sigma2[length(garch.sigma2)] # last variance
+garch.sigma2.vec <- VL + (alpha + beta)^(0:m) * (garch.sigma2.t - VL) # vector of variances
+
+garch.sigma.vec <- sqrt(garch.sigma2.vec) # vector of standard deviations
+plot(garch.sigma.vec * sqrt(250), type = "l", xlab = "days", ylab = "GARCH forecast volatility") # plot the forecast
+sqrt(sum(garch.sigma2.vec)) # sum of the standard deviations
+```
+
+# End of Part 1
