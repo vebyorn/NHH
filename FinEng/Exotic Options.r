@@ -57,13 +57,13 @@ SE = lb.outputs[2] # Standard Error
 Pn; SE # Results
 
 ## Deterministic volatility function
-# t = time
+# S0 = inital stock price
 # C = coefficients
-det.sigma = function(t) {
+det.sigma = function(S0) {
   s = matrix(nrow = 3, ncol = 1, data = c(0.05, 0.3, 0.5))
   A = matrix(nrow = 3, ncol = 3, data = c(1, 1, 1, 50, 100, 150, 50^2, 100^2, 150^2))
   C = solve(A, s)
-  sigma = C[1] + C[2] * t + C[3] * t^2
+  sigma = C[1] + C[2] * S0 + C[3] * S0^2
   return(sigma)
 }
 
