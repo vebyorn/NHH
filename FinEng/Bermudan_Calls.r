@@ -55,10 +55,8 @@ BCn; SE # Result
 # T = time to maturity
 # dt = time interval
 # b = branches
-berm.l.est = function(S0, K, sigma, r, T, delta_t, b, n) {
-  m = T / delta_t # number of time steps
-  dt = T / m # time interval
-  
+berm.l.est = function(S0, K, sigma, r, T, dt, b, n) {
+  m = T / dt # number of time steps
   vals = numeric(n) # vector of option values
   
   for (i in 1:n) { # iterated over simulations
@@ -93,3 +91,5 @@ outputs = berm.l.est(100, 100, 0.2, 0.01, 2, 0.25, 3, 100)
 LeCn = outputs[1] # Numerical Call Price
 SE = outputs[2] # Standard Error
 LeCn; SE # Result
+
+
