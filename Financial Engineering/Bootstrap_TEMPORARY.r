@@ -49,13 +49,15 @@ Z
 t
 
 ## Interest Rate Swaps
-IRS.2y =
-IRS.3y =
-IRS.4y =
-IRS.5y =
-IRS.7y =
-IRS.10y =
-IRS.12y =
-IRS.15y =
-IRS.20y =
+IRS.2y = 0.04933
+IRS.3y = 0.045381
+IRS.4y = 0.04279
+IRS.5y = 0.041202
+IRS.7y = 0.03948
+IRS.10y = 0.0384
+IRS.12y = 0.03814
+IRS.15y = 0.03791
+IRS.20y = 0.037388
 
+IRS = c(IRS.2y, IRS.3y, IRS.4y, IRS.5y, IRS.7y, IRS.10y, IRS.12y, IRS.15y, IRS.20y)
+t = c(t, /365.242, /365.242, /365.242, /365.242, /365.242, /365.242, /365.242, /365.242, /365.242)
