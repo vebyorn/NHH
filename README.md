@@ -1,5 +1,5 @@
 # NHH
-Notebooks for School
+#### Notebooks for School
 
 These notebooks were created as part of, or for intended use in, assignments, projects and assessments of similar nature at the Norwegian School of Economics. 
 Any practical implementation of the files in this repository is highly discouraged. Feel free to take a peek though. :-)
