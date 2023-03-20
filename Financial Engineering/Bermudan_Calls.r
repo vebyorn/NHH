@@ -44,8 +44,8 @@ berm.call = function(K, S, sigma, r, T, dt, b, n) {
 
 outputs = berm.call(100, 100, 0.20, 0.01, 2, 0.25, 3, 100)
 BCn = outputs[1] # Numerical Call Price
-SE = outputs[2] # Standard Error
-BCn; SE # Result
+BSE = outputs[2] # Standard Error
+BCn; BSE # Result
 
 ## Bermudan Option, Low Estimator #################################
 # K = Strike Price
@@ -89,7 +89,5 @@ berm.l.est = function(S0, K, sigma, r, T, dt, b, n) {
 
 outputs = berm.l.est(100, 100, 0.2, 0.01, 2, 0.25, 3, 100)
 LeCn = outputs[1] # Numerical Call Price
-SE = outputs[2] # Standard Error
-LeCn; SE # Result
-
-
+LeSE = outputs[2] # Standard Error
+LeCn; LeSE # Result
