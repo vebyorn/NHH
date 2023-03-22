@@ -15,20 +15,20 @@ berm.reg = function(K, S0, sigma, r, T, n, dt) {
 
     ## Regression via matrix multiplication
     h = exp(-r * dt) * pmax(S - K, 0) # payoff matrix
-    X = S0
+    X = S0 # initial value matrix
     V = h # option value matrix
-    for (i in (m - 1):1) {
-        B = (t(X) %*% X)^(-1) %*% t(X) %*% V[i + 1, ]
-        c = X %*% B
-        V[i, ] = exp(-r * dt) * pmax(c, h[i, ])
+    for (i in (m - 1):1) { # backwards induction over time
+        B = (t(X) %*% X)^(-1) %*% t(X) %*% V[i + 1, ] # regression coefficients
+        c = X %*% B # continuation value
+        V[i, ] = exp(-r * dt) * pmax(c, h[i, ]) # option values
     }
 
     ## Output
-    V0 = mean(V[1,])
-    SE = sd(V[1,]) / sqrt(length(V))
+    V0 = mean(V[1,]) # today's option price
+    SE = sd(V[1,]) / sqrt(length(V)) # standard error
 
-    # end function
-    return(c(V0, SE))
+    ## End function
+    return(c(V0, SE)) # return as list
 }
 
 outputs = berm.reg(100, 100, 0.2, 0.01, 2, 100000, 0.25)
