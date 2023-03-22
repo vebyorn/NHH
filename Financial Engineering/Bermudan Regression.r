@@ -4,7 +4,7 @@
 rm(list=ls())
 
 ## Tsitsiklis and Van Roy (2001): Bermudan Call ############################
-berm.reg = function(K, S0, sigma, r, T, n, dt) {
+berm.reg = function(K, S0, sigma, r, T, n, dt, phi) {
     ## Generating stock paths
     t = seq(dt, T, by = dt) # time steps
     m = length(t) # number of time steps
@@ -18,8 +18,8 @@ berm.reg = function(K, S0, sigma, r, T, n, dt) {
     X = S0 # initial value matrix
     V = h # option value matrix
     for (i in (m - 1):1) { # backwards induction over time
-        B = (t(X) %*% X)^(-1) %*% t(X) %*% V[i + 1, ] # regression coefficients
-        c = X %*% B # continuation value
+        B = (phi(t(X)) %*% phi(X))^(-1) %*% phi(t(X)) %*% V[i + 1, ] # regression coefficients
+        c = phi(X) %*% B # continuation value
         V[i, ] = exp(-r * dt) * pmax(c, h[i, ]) # option values
     }
 
@@ -31,7 +31,9 @@ berm.reg = function(K, S0, sigma, r, T, n, dt) {
     return(c(V0, SE)) # return as list
 }
 
-outputs = berm.reg(100, 100, 0.2, 0.01, 2, 100000, 0.25)
+outputs = berm.reg(100, 100, 0.2, 0.01, 2, 100000, 0.25, function(x) x)
 berm.val = outputs[1] # option price
 berm.se = outputs[2] # standard error
 berm.val; berm.se
+
+## Longstaff and Schwartz (2021): Bermudan Call #############################
