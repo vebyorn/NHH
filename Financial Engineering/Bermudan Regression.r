@@ -26,7 +26,7 @@ berm.reg = function(K, S0, sigma, r, T, n, dt) {
 
     ## Output
     V0 = mean(V[1,])
-    SE = sd(V[1,])/sqrt(length(V))
+    SE = sd(V[1,]) / sqrt(length(V))
 
     # end function
     return(c(V0, SE))
