@@ -16,7 +16,6 @@ berm.reg = function(K, S0, sigma, r, T, n, dt) {
     ## Regression via matrix multiplication
     h = exp(-r * dt) * pmax(S - K, 0) # payoff matrix
     X = S0
-    h = exp(-r * dt) * pmax(S - K, 0) # payoff matrix
     V = h # option value matrix
     for (i in (m - 1):1) {
         B = (t(X) %*% X)^(-1) %*% t(X) %*% V[i + 1, ]
