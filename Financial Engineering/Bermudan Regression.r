@@ -97,11 +97,4 @@ berm.itm.SE = outputs.itm[2] # standard error
 berm.itm.V0; berm.itm.SE
 ## V0 target = 12.0265
 ## SE target = 0.0589
-
-
-
-
-
-
-
-
+# Undershoots slightly.
