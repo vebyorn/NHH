@@ -17,21 +17,43 @@ L = matrix(L, nrow = 1, ncol = 3)
 # Simulate W
 set.seed(1)
 W = matrix(rnorm(N*M), nrow = N, ncol = M)
+W # OK
 
-i = 1
+## T1: k = 1, m = 1 ## Good
 k = 1
+i = k
 m = 1
-Ai = A[i - k + 1]
-Ai
 
-Am = A[m - k + 1]
-Am
-
-Li = L[k - 1 + 1]
-Li
-
-mu = (dt * Li * Ai * Am) / (1 + dt * Li) - Am^2 / 2
+num = dt * L[i] * A[i - k + 1] * A[m - k + 1]
+dem = 1 + dt * L[k - 1 + 1]
+mu = num/dem - A[m - k + 1]^2 / 2
 mu
 
-Lm = Li * exp(mu * dt + sqrt(dt) * Am * W)
+Lm = L[m + 1] * exp(mu * dt + sqrt(dt) * A[m - k + 1] * W[k])
+Lm
+
+## T2: k = 1, m = 2 ## Good
+k = 1
+i = k
+m = 2
+
+num = dt * L[i] * A[i - k + 1] * A[m - k + 1]
+dem = 1 + dt * L[k - 1 + 1]
+mu = num/dem - A[m - k + 1]^2 / 2
+mu
+
+Lm = L[m + 1] * exp(mu * dt + sqrt(dt) * A[m - k + 1] * W[k])
+Lm
+
+## T2: k = 2, m = 2
+k = 2
+i = k
+m = 2
+
+num = dt * L[i] * A[i - k + 1] * A[m - k + 1]
+dem = 1 + dt * L[k - 1 + 1]
+mu = num/dem - A[m - k + 1]^2 / 2
+mu
+
+Lm = L[m + 1] * exp(mu * dt + sqrt(dt) * A[m - k + 1] * W[k])
 Lm
