@@ -32,7 +32,7 @@ mu
 Lm = L[m + 1] * exp(mu * dt + sqrt(dt) * A[m - k + 1] * W[k])
 Lm
 
-## T2: k = 1, m = 2 ## Good
+## T1: k = 1, m = 2 ## Good
 k = 1
 i = k
 m = 2
