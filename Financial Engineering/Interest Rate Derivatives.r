@@ -56,9 +56,9 @@ lmm.sf = function(L, Lambda, dt, K, N) {
 }
 
 # Inputs
-L <- c(0.01, 0.02, 0.03)
-Lambda <- c(0.20, 0.30)
+L <- c(0.01, 0.02, 0.03) # L = vector of initial forward libor rates
+Lambda <- c(0.20, 0.30) # Lambda = vector of stationary volatilities
 
 # Run simulation
-set.seed(1)
+set.seed(1) # Set seed for reproducibility
 results = round(lmm.sf(L, Lambda, dt = 1, K = 2, N = 10), digits = 4 ); results
