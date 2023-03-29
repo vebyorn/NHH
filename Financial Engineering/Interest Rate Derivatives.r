@@ -19,13 +19,13 @@ set.seed(1)
 W = matrix(rnorm(N*M), nrow = N, ncol = M)
 W # OK
 
-## T1: k = 1, m = 1 ## Perfect
 # Vectors
 A.vec = c()
 mu.vec = c()
 Lm.vec = c()
 W.vec = c()
 
+## T1: k = 1, m = 1 ## Perfect
 k = 1
 m = 1
 A.vec[1] = A[m - k + 1]; A.vec
