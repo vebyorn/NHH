@@ -61,4 +61,4 @@ Lambda <- c(0.20, 0.30) # Lambda = vector of stationary volatilities
 
 # Run simulation
 set.seed(1) # Set seed for reproducibility
-results = round(lmm.sf(L, Lambda, dt = 1, K = 2, N = 10), digits = 4 ); results
+results = round(lmm.sf(L, Lambda, dt = 1, K = 2, N = 10), digits = 4); results
