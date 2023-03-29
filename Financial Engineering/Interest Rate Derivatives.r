@@ -73,6 +73,6 @@ mu.vec
 Lm.vec[3] = Lm.vec[2] * exp(mu.vec[3] * dt + sqrt(dt) * A[m - k + 1] * W[k])
 Lm.vec
 
-RES = as.matrix(cbind(A.vec, round(mu.vec, 4), round(W.vec, 4), round(Lm.vec, 4)))
-RES
+RES = as.matrix(cbind(A.vec, mu.vec, W.vec, Lm.vec))
+round(RES, 4)
 # next: loop it :)
