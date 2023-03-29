@@ -19,41 +19,60 @@ set.seed(1)
 W = matrix(rnorm(N*M), nrow = N, ncol = M)
 W # OK
 
-## T1: k = 1, m = 1 ## Good
+## T1: k = 1, m = 1 ## Perfect
+# Vectors
+A.vec = c()
+mu.vec = c()
+Lm.vec = c()
+W.vec = c()
+
 k = 1
-i = k
 m = 1
+A.vec[1] = A[m - k + 1]; A.vec
+W.vec[1] = W[k]; W.vec
 
-num = dt * L[i] * A[i - k + 1] * A[m - k + 1]
-dem = 1 + dt * L[k - 1 + 1]
-mu = num/dem - A[m - k + 1]^2 / 2
-mu
+mu.sum = c()
+for (i in k:m) {
+    mu.sum[i] = (dt * L[i + 1] * A[i - k + 1] * A[m - k + 1]) / (1 + dt * L[i + 1])
+    }
+mu.vec[1] = sum(mu.sum, na.rm = TRUE) - A[m - k + 1]^2 / 2
+mu.vec
 
-Lm = L[m + 1] * exp(mu * dt + sqrt(dt) * A[m - k + 1] * W[k])
-Lm
+Lm.vec[1] = L[m + 1] * exp(mu.vec[1] * dt + sqrt(dt) * A[m - k + 1] * W[k])
+Lm.vec
 
-## T1: k = 1, m = 2 ## Good
+## T1: k = 1, m = 2 # PERFECT
 k = 1
-i = k
 m = 2
+A.vec[2] = A[m - k + 1]; A.vec
+W.vec[2] = W[k]; W.vec
 
-num = dt * L[i] * A[i - k + 1] * A[m - k + 1]
-dem = 1 + dt * L[k - 1 + 1]
-mu = num/dem - A[m - k + 1]^2 / 2
-mu
+mu.sum = c()
+for (i in k:m) {
+    mu.sum[i] = (dt * L[i + 1] * A[i - k + 1] * A[m - k + 1]) / (1 + dt * L[i + 1])
+    }
+mu.vec[2] = sum(mu.sum, na.rm = TRUE) - A[m - k + 1]^2 / 2
+mu.vec
 
-Lm = L[m + 1] * exp(mu * dt + sqrt(dt) * A[m - k + 1] * W[k])
-Lm
+Lm.vec[2] = L[m + 1] * exp(mu.vec[2] * dt + sqrt(dt) * A[m - k + 1] * W[k])
+Lm.vec
 
-## T2: k = 2, m = 2
+## T2: k = 2, m = 2 # PERFECT
 k = 2
-i = k
 m = 2
+A.vec[3] = A[m - k + 1]
+W.vec[3] = W[k]
 
-num = dt * L[i] * A[i - k + 1] * A[m - k + 1]
-dem = 1 + dt * L[k - 1 + 1]
-mu = num/dem - A[m - k + 1]^2 / 2
-mu
+mu.sum = c()
+for (i in k:m) {
+    mu.sum[i] = (dt * Lm.vec[2] * A[i - k + 1] * A[m - k + 1]) / (1 + dt * Lm.vec[2])
+    }
+mu.vec[3] = sum(mu.sum, na.rm = TRUE) - A[m - k + 1]^2 / 2
+mu.vec
 
-Lm = L[m + 1] * exp(mu * dt + sqrt(dt) * A[m - k + 1] * W[k])
-Lm
+Lm.vec[3] = Lm.vec[2] * exp(mu.vec[3] * dt + sqrt(dt) * A[m - k + 1] * W[k])
+Lm.vec
+
+RES = as.matrix(cbind(A.vec, round(mu.vec, 4), round(W.vec, 4), round(Lm.vec, 4)))
+RES
+# next: loop it :)
