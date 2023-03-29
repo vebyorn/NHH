@@ -1,78 +1,64 @@
 #####################
 ## 27th March 2023 ##
 #####################
+## This was a collaborative effort.
+## Credits to: https://github.com/maysamx
+
+# initialise workspace
 rm(list=ls())
 
-# params
-L = c(0.01, 0.02, 0.03)
-A = c(0.2, 0.3)
-dt = 1
-N = 1
-K = 2
-M = 2
+## Libor Market Model, Single Factor ##
+# L = vector of initial forward libor rates
+# Lambda = vector of stationary volatilities
+# dt = time step
+# K = number of time steps
+# N = number of simulations
+lmm.sf = function(L, Lambda, dt, K, N) {
+  # Initialize output list
+  output = data.frame(k = numeric(), m = numeric(), Lambda = numeric(), `µm(Tk)` = numeric(), `W(Tk)` = numeric(), `Lm(Tk)` = numeric())  
 
-A = matrix(A, nrow = 1, ncol = 2)
-L = matrix(L, nrow = 1, ncol = 3)
+  # Loop for simulations
+  for (n in 1:N) {
+    L.prev = L[-1]
+    
+    # Loop for points in time (k marks the point in time we are valuing at)
+    for (k in 1:K) {
+      # Update L.prev to include the new value of Lm1(Tk) from previous iteration
+      if (k == 1) {
+        L.prev = L[-1]
+      } else {
+        L.prev = c(L[k], L.prev[-1])
+      }
+      # Generate random number for W(Tk)
+      Wk = rnorm(1)
+      
+      # Loop for periods we are simulation at time k
+      for (m in k:(length(L) - 1)) {
+        sum.mu = 0
+        
+        # Loop to replicate sum function in formula
+        for (i in k:m) {
+          sum.mu = sum.mu + dt * L.prev[i - k + 1] * Lambda[m - k + 1] * Lambda[i - k + 1] / (1 + dt * L.prev[i - k + 1])
+        }
+        
+        # Calculate mu and L at time m
+        mu = sum.mu - Lambda[m - k + 1]^2 / 2
+        L.new = L.prev[m - k + 1] * exp(mu * dt + sqrt(dt) * Lambda[m - k + 1] * Wk)
+        
+        # Save output in output dataframe
+        output = rbind(output, data.frame(k = k, m = m, Lambda = Lambda[m - k + 1], `µm(Tk)` = mu, `W(Tk)` = Wk, `Lm(Tk)` = L.new))
+        L[m - k + 1] = L.new
+      }
+    }
+  }
+  # Return Output dataframe
+  return(output)
+}
 
-# Simulate W
+# Inputs
+L <- c(0.01, 0.02, 0.03)
+Lambda <- c(0.20, 0.30)
+
+# Run simulation
 set.seed(1)
-W = matrix(rnorm(N*M), nrow = N, ncol = M)
-W # OK
-
-# Vectors
-A.vec = c()
-mu.vec = c()
-Lm.vec = c()
-W.vec = c()
-
-## T1: k = 1, m = 1 ## Perfect
-k = 1
-m = 1
-A.vec[1] = A[m - k + 1]; A.vec
-W.vec[1] = W[k]; W.vec
-
-mu.sum = c()
-for (i in k:m) {
-    mu.sum[i] = (dt * L[i + 1] * A[i - k + 1] * A[m - k + 1]) / (1 + dt * L[i + 1])
-    }
-mu.vec[1] = sum(mu.sum, na.rm = TRUE) - A[m - k + 1]^2 / 2
-mu.vec
-
-Lm.vec[1] = L[m + 1] * exp(mu.vec[1] * dt + sqrt(dt) * A[m - k + 1] * W[k])
-Lm.vec
-
-## T1: k = 1, m = 2 # PERFECT
-k = 1
-m = 2
-A.vec[2] = A[m - k + 1]; A.vec
-W.vec[2] = W[k]; W.vec
-
-mu.sum = c()
-for (i in k:m) {
-    mu.sum[i] = (dt * L[i + 1] * A[i - k + 1] * A[m - k + 1]) / (1 + dt * L[i + 1])
-    }
-mu.vec[2] = sum(mu.sum, na.rm = TRUE) - A[m - k + 1]^2 / 2
-mu.vec
-
-Lm.vec[2] = L[m + 1] * exp(mu.vec[2] * dt + sqrt(dt) * A[m - k + 1] * W[k])
-Lm.vec
-
-## T2: k = 2, m = 2 # PERFECT
-k = 2
-m = 2
-A.vec[3] = A[m - k + 1]
-W.vec[3] = W[k]
-
-mu.sum = c()
-for (i in k:m) {
-    mu.sum[i] = (dt * Lm.vec[2] * A[i - k + 1] * A[m - k + 1]) / (1 + dt * Lm.vec[2])
-    }
-mu.vec[3] = sum(mu.sum, na.rm = TRUE) - A[m - k + 1]^2 / 2
-mu.vec
-
-Lm.vec[3] = Lm.vec[2] * exp(mu.vec[3] * dt + sqrt(dt) * A[m - k + 1] * W[k])
-Lm.vec
-
-RES = as.matrix(cbind(A.vec, mu.vec, W.vec, Lm.vec))
-round(RES, 4)
-# next: loop it :)
+results = round(lmm.sf(L, Lambda, dt = 1, K = 2, N = 10), digits = 4 ); results
