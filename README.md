@@ -13,3 +13,6 @@ Examines the theoretical and analytical aspects of financial derivatives calculu
 
 Applicaton Development in Python: 
 Creating web-hosted interactive plots and data visualisation applications.
+
+Deep Learning (with Applications to Finance):
+Files relating to my group's term paper where we use ANNs to detect fradulent cryptocurrencies by using textual analysis on promotional crypto tweets.
