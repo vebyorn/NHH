@@ -4,7 +4,7 @@
 These notebooks were created as part of, or for intended use in, assignments, projects and assessments of similar nature at the Norwegian School of Economics. 
 Any practical implementation of the files in this repository is highly discouraged. Feel free to take a peek though. :-)
 
-#### Current (and planned) repositories:
+#### Current repositories:
 Financial Engineering: 
 Primarily concerned with the creation of algorithms related to exotic options pricing and interest rate derivatives.
 
@@ -13,6 +13,3 @@ Examines the theoretical and analytical aspects of financial derivatives calculu
 
 Applicaton Development in Python: 
 Creating web-hosted interactive plots and data visualisation applications.
-
-Deep Learning with Applications to Finance: 
-The application of artificial neural networks (ANNs) to analyze and predict financial data and outcomes.
