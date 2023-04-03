@@ -76,18 +76,15 @@ mf.lambda = function (l1, l2) {
   return(Lambda)
 }
 
-# Inputs
-L = c(0.01, 0.02, 0.03) # L = vector of initial forward libor rates
-l1 = c(0.2, 0); l2 = c(0, 0.3) # l1, l2 = vectors of volatilities
-Lambda = mf.lambda(l1, l2) # Lambda = matrix of volatilities
-dt = 1 # dt = time step
-K = 2 # K = number of time steps
-N = 10 # N = number of simulations
-
-## Initialize output list
-output = data.frame(k = numeric(), m = numeric(), Lambda = numeric(), `µm(Tk)` = numeric(), `W(Tk)` = numeric(), `Lm(Tk)` = numeric())  
-
-set.seed(1)
+## Libor Market Model, Multi Factor ##
+# L = vector of initial forward libor rates
+# Lambda = vector of stationary volatilities
+# dt = time step
+# K = number of time steps
+# N = number of simulations
+lmm.mf = function(L, Lambda, dt, K, N) {
+  ## Initialize output list
+  output = data.frame(k = numeric(), m = numeric(), Lambda = numeric(), `µm(Tk)` = numeric(), `W(Tk)` = numeric(), `Lm(Tk)` = numeric())  
 
   ## Simulate Ns sims
   for (n in 1:N) { # Loop over n simulations
@@ -145,9 +142,12 @@ set.seed(1)
     }
   }
 
-  ## Return first 3 rows of output dataframe
-  round(output[1:3, ], 4)
+  ## Return Output dataframe
+  return(output)
+}
 
-# testing
-set.seed(1)
 
+set.seed(1) # Set seed for reproducibility
+l1 = c(0.2, 0); l2 = c(0, 0.3) # l1, l2 = vectors of volatilities
+res.mf = lmm.mf(c(0.01, 0.02, 0.03), Lambda = mf.lambda(l1, l2), dt = 1, K = 2, N = 10) # Run simulation
+round(res.mf[1:3, ], 4) # print results
