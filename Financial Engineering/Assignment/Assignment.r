@@ -82,7 +82,7 @@ boundSpreads = taskOne[taskOne$euribor3md >= 0.02 & taskOne$euribor3md  <= 0.06,
 outOfBoundSpreads = taskOne[taskOne$euribor3md < 0.02 | taskOne$euribor3md  > 0.06,] # only rates out of bounds
 # If our calculations are correct, the following should be true of their spreads:
 all(boundSpreads$spread == 0) # = TRUE
-all(outOfBoundSpreads$spread > 0) = # TRUE
+all(outOfBoundSpreads$spread > 0) # = TRUE
 
 # Do later: finish task by only selecting realised dates and placing them in a DF.
 # Then run them through the quartSpread function and compute the spread from payment to payment.
