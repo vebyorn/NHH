@@ -38,12 +38,12 @@ dat = assignmentDataCleaner(csv); str(dat) # cleaning the csv
 # startDate = start date as a string
 # endDate = end date as a string
 ratePicker = function(df, column, startDate, endDate) {
-  interestData = data.frame(time = df$time, column = df[[column]]) # creating data frame
-  interestData = interestData[interestData$time >= as.Date(startDate),] # selecting time period
-  interestData = interestData[interestData$time <= as.Date(endDate),] # selecting time period
-  interestData = interestData[!is.na(interestData[2]),] # removing NA rates
-  colnames(interestData)[2] = column # renaming column
-  return(interestData) # returning data frame
+  newFrame = data.frame(time = df$time, column = df[[column]]) # creating data frame
+  newFrame = newFrame[newFrame$time >= as.Date(startDate),] # selecting time period
+  newFrame = newFrame[newFrame$time <= as.Date(endDate),] # selecting time period
+  newFrame = newFrame[!is.na(newFrame[2]),] # removing NA rates
+  colnames(newFrame)[2] = column # renaming column
+  return(newFrame) # returning new data frame
 }
 
 # Quarterly Spread:
