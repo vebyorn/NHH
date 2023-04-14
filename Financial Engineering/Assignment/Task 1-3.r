@@ -49,9 +49,9 @@ ratePicker = function(df, column, startDate, endDate) {
 # Quarterly Spread:
 # df = data frame
 # rateColumn = column name of the desired rate as a string
-# coupon = function to compute coupon
 # lower = lower bound of the spread
 # upper = upper bound of the spread
+# coupon = function to compute coupon
 quartSpread = function(df, rateColumn, lower, upper, coupon) {
     df$spread = 0 # initialising spread column
     euriborPrev = c(lag(df[[rateColumn]], 1)) # lagging rate column
@@ -64,7 +64,6 @@ quartSpread = function(df, rateColumn, lower, upper, coupon) {
 
 # DigiCoupon:
 # df = data frame
-# rateColumn = column name of the desired rate as a string
 digiCoupon = function(prevRate) {
     ifelse(prevRate >= 0.02 & prevRate <= 0.06, 0.005, 0)
 }
