@@ -85,4 +85,6 @@ all(boundSpreads$spread == 0) # TRUE
 all(outOfBoundSpreads$spread > 0) # TRUE
 
 # Do later: finish task by only selecting realised dates and placing them in a DF.
+# Then run them through the quartSpread function and compute the spread from payment to payment.
+# As this is what I assume what t and t-1 are referring to. I should probably read the article again...
 # Realised dates are for variable payments: 11th of March, June, September and December.
