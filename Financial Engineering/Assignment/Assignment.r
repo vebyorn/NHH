@@ -2,13 +2,12 @@
 ## FIE446 Assignment Spring 2023, Group: ??? ##
 ###############################################
 
-#####################
-## Data Processing ##
-#####################
-
 # initialise environment
 rm(list=ls())
 
+#####################
+## Data Processing ##
+#####################
 # Packaging in the cleaning into a function for brevity
 # df = data frame
 assignmentDataCleaner = function(df) {
@@ -17,8 +16,9 @@ assignmentDataCleaner = function(df) {
     dat$time = as.Date(dat$time, format = "%d/%m/%Y") # formating time
     dat[, 2:ncol(dat)] = lapply(dat[, 2:ncol(dat)], as.numeric) # formating rates
     dat[, 2:ncol(dat)] = dat[, 2:ncol(dat)] / 100 # converting to decimal
-    dat = dat[!is.na(dat$time),] # removing NA time
+    dat = dat[!is.na(dat$time),] # removing rows with NA time
     colnames(dat) = gsub("\\.$", "", colnames(dat)) # removing trailing dots
+    dat = dat[order(dat$time),] # sorting by time
     return(dat) # returning "cleaned" data (still NAs to keep in mind)
 }
 
@@ -26,9 +26,9 @@ assignmentDataCleaner = function(df) {
 csv = read.csv("C:/Users/vebky/Desktop/EUR-Market-Data.csv") # reading in csv
 dat = assignmentDataCleaner(csv); str(dat) # cleaning the csv
 
-############
-## Task 1 ##
-############
+########################
+## Task 1: Algorithms ##
+########################
 # Computing realised quarterly spread of the swap 
 # for the time period March 11, 2007 and December 11, 2013.
 
@@ -44,6 +44,30 @@ ratePicker = function(df, column, startDate, endDate) {
   newFrame = newFrame[!is.na(newFrame[2]),] # removing NA rates
   colnames(newFrame)[2] = column # renaming column
   return(newFrame) # returning new data frame
+}
+
+# Function to select the realised dates:
+# df = data frame with time and rate column
+# real = vector of realised dates in month, day format, ex: c("03-11", "06-11", "09-11", "12-11")
+# startYear = start year as a number, ex: 2007
+# endYear = end year as a number, ex: 2013
+realiser = function(df, real, startYear, endYear) {
+    df$realised = 0 # initialising realised column
+    for (i in startYear:endYear) {
+        for (j in 1:4) {
+            # this is specifically to help with the months where the desired day is on a weekend
+            # we chose to roll forward to the next business day, rather than rolling backwards
+            df$realised[df$time == as.Date(paste0(i, "-", real[j]), format = "%Y-%m-%d")] = 1
+            df$realised[df$time == as.Date(paste0(i, "-", real[j]), format = "%Y-%m-%d") + 1] = 1
+            df$realised[df$time == as.Date(paste0(i, "-", real[j]), format = "%Y-%m-%d") + 2] = 1
+        }
+    }
+    df = df[df$realised == 1,] # selecting realised dates
+    df$year = as.numeric(format(df$time, "%Y")) # creating year column
+    df$month = as.numeric(format(df$time, "%m")) # creating month column
+    df = df[!duplicated(df[, c("year", "month")]),] # keeping only the earliest day of each month per year
+    df$realised = NULL; df$year = NULL; df$month = NULL # removing unnecessary columns
+    return(df) # returning the data frame
 }
 
 # Quarterly Spread:
@@ -68,14 +92,18 @@ digiCoupon = function(prevRate) {
     ifelse(prevRate >= 0.02 & prevRate <= 0.06, 0.005, 0)
 }
 
-## Task 1 Results: ##
+#####################
+## Task 1: Results ##
+#####################
 # Choosing time interval and rate
-taskOne = ratePicker(dat, "euribor3md", "2007-03-11", "2013-12-11") # selecting time interval and rate
-head(taskOne); tail(taskOne) # checking
+real = c("03-11", "06-11", "09-11", "12-11") # realised dates
+taskOne = realiser(ratePicker(dat, "euribor3md", "2007-03-01", "2013-12-31"), real, 2007, 2013) # generating data frame
+taskOne # quarterly euribor3md rates for use in task 1
+
 
 # Computing quarterly spread:
 taskOne = quartSpread(taskOne, "euribor3md", lower = 0.02, upper = 0.06, digiCoupon) # computing quarterly spread
-head(taskOne); tail(taskOne) # checking
+taskOne # quarterly spreads for use in task 1
 
 # Validating our results:
 boundSpreads = taskOne[taskOne$euribor3md >= 0.02 & taskOne$euribor3md  <= 0.06,] # only rates in bounds
@@ -83,8 +111,3 @@ outOfBoundSpreads = taskOne[taskOne$euribor3md < 0.02 | taskOne$euribor3md  > 0.
 # If our calculations are correct, the following should be true of their spreads:
 all(boundSpreads$spread == 0) # = TRUE
 all(outOfBoundSpreads$spread > 0) # = TRUE
-
-# Do later: finish task by only selecting realised dates and placing them in a DF.
-# Then run them through the quartSpread function and compute the spread from payment to payment.
-# As this is what I assume what t and t-1 are referring to. I should probably read the article again...
-# Realised dates are for variable payments: 11th of March, June, September and December.
