@@ -100,7 +100,6 @@ real = c("03-11", "06-11", "09-11", "12-11") # realised dates
 taskOne = realiser(ratePicker(dat, "euribor3md", "2007-03-01", "2013-12-31"), real, 2007, 2013) # generating data frame
 taskOne # quarterly euribor3md rates for use in task 1
 
-
 # Computing quarterly spread:
 taskOne = quartSpread(taskOne, "euribor3md", lower = 0.02, upper = 0.06, digiCoupon) # computing quarterly spread
 taskOne # quarterly spreads for use in task 1
@@ -111,3 +110,36 @@ outOfBoundSpreads = taskOne[taskOne$euribor3md < 0.02 | taskOne$euribor3md  > 0.
 # If our calculations are correct, the following should be true of their spreads:
 all(boundSpreads$spread == 0) # = TRUE
 all(outOfBoundSpreads$spread > 0) # = TRUE
+
+########################
+## Task 2: Algorithms ##
+########################
+# Determine the prepayment schedule of the lease-back deal
+# based on the information in the article. Make the following
+# assumptions: The outstanding loan amount of the lease-back
+# deal is 89 million in December 11, 2006 with a remaining
+# time-to-maturity of 25 years. Assume the interest payments
+# of the lease-back deal is tied to the 3-month Euribor rate
+# plus a 1% spread p.a. Assume payments had to be made on
+# quarterly basis, on the 11th of March, June, September
+# and December each year.
+
+# euribor3md
+real = c("03-11", "06-11", "09-11", "12-11") # realised dates
+taskTwo = realiser(ratePicker(dat, "euribor3md", "2006-12-01", "2006-12-31"), real, 2006, 2006) # generating data frame
+taskTwo # 3 month euribor linked to the loan amount.
+
+# Annuity Payment:
+# loan = loan amount
+# rate = interest rate
+# n = periods
+annuityPayment = function(loan, rate, n) {
+    numer = (loan * rate * (1 + rate)^n)  # numerator
+    denom = ((1 + rate)^n - 1) # denominator
+    return(numer / denom) # returning the annuity payment
+}
+
+# Prepayment Schedule:
+prepaymentSchedule = function(df, loan, spread, quarters) {
+    # figure this out
+}
