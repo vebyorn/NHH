@@ -23,7 +23,7 @@ assignmentDataCleaner = function(df) {
 }
 
 # Loading and cleaning data
-csv = read.csv("C:/Users/vebky/Desktop/EUR-Market-Data.csv") # reading in csv
+csv = read.csv("C:/Users/vebky/FIE446/Assignment/EUR-Market-Data.csv") # reading in csv
 dat = assignmentDataCleaner(csv); str(dat) # cleaning the csv
 
 ########################
@@ -37,12 +37,9 @@ dat = assignmentDataCleaner(csv); str(dat) # cleaning the csv
 # column = column name of the desired rate as a string
 # startDate = start date as a string
 # endDate = end date as a string
-ratePicker = function(df, column, startDate, endDate) {
-  newFrame = data.frame(time = df$time, column = df[[column]]) # creating data frame
-  newFrame = newFrame[newFrame$time >= as.Date(startDate),] # selecting time period
-  newFrame = newFrame[newFrame$time <= as.Date(endDate),] # selecting time period
-  newFrame = newFrame[!is.na(newFrame[2]),] # removing NA rates
-  colnames(newFrame)[2] = column # renaming column
+ratePicker = function(df, columns, startDate, endDate) {
+    newFrame = df[df$time >= startDate & df$time <= endDate, c("time", columns)] # selecting time period and columns
+    newFrame = newFrame[complete.cases(newFrame),] # removing rows with NA rates
   return(newFrame) # returning new data frame
 }
 
@@ -125,8 +122,9 @@ all(outOfBoundSpreads$spread > 0) # = TRUE
 # and December each year.
 
 # euribor3md
-real = c("03-11", "06-11", "09-11", "12-11") # realised dates
-taskTwo = realiser(ratePicker(dat, "euribor3md", "2006-12-01", "2006-12-31"), real, 2006, 2006) # generating data frame
+real = c("12-11") # realised dates
+ratesForBootstrap = c("eurond", "eurtnd", "euriborswd", "euribor1md", "euribor3md") # rates for bootstrapping
+taskTwo = realiser(ratePicker(dat, ratesForBootstrap, "2007-12-01", "2007-12-31"), real, 2007, 2007) # generating data frame
 taskTwo # 3 month euribor linked to the loan amount.
 
 # Annuity Payment:
