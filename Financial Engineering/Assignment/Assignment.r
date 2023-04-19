@@ -39,19 +39,18 @@ dat = assignmentDataCleaner(csv); str(dat) # cleaning the csv
 # endDate = end date as a string
 ratePicker = function(df, columns, startDate, endDate) {
     newFrame = df[df$time >= startDate & df$time <= endDate, c("time", columns)] # selecting time period and columns
-    newFrame = newFrame[complete.cases(newFrame),] # removing rows with NA rates
   return(newFrame) # returning new data frame
 }
 
-# Function to select the realised dates:
+# Function to select the realised dates (monthly):
 # df = data frame with time and rate column
-# real = vector of realised dates in month, day format, ex: c("03-11", "06-11", "09-11", "12-11")
+# real = vector of realised dates in mm-dd format, ex: c("03-11", "06-11", "09-11", "12-11")
 # startYear = start year as a number, ex: 2007
 # endYear = end year as a number, ex: 2013
 realiser = function(df, real, startYear, endYear) {
     df$realised = 0 # initialising realised column
     for (i in startYear:endYear) {
-        for (j in 1:4) {
+        for (j in 1:length(real)) {
             # this is specifically to help with the months where the desired day is on a weekend
             # we chose to roll forward to the next business day, rather than rolling backwards
             df$realised[df$time == as.Date(paste0(i, "-", real[j]), format = "%Y-%m-%d")] = 1
@@ -67,13 +66,13 @@ realiser = function(df, real, startYear, endYear) {
     return(df) # returning the data frame
 }
 
-# Quarterly Spread:
+# Swap Spread:
 # df = data frame
 # rateColumn = column name of the desired rate as a string
 # lower = lower bound of the spread
 # upper = upper bound of the spread
 # coupon = function to compute coupon
-quartSpread = function(df, rateColumn, lower, upper, coupon) {
+swapSpread = function(df, rateColumn, lower, upper, coupon) {
     df$spread = 0 # initialising spread column
     euriborPrev = c(lag(df[[rateColumn]], 1)) # lagging rate column
     spreadPrev = c(lag(df$spread, 1)) # lagging spread column
@@ -98,7 +97,7 @@ taskOne = realiser(ratePicker(dat, "euribor3md", "2007-03-01", "2013-12-31"), re
 taskOne # quarterly euribor3md rates for use in task 1
 
 # Computing quarterly spread:
-taskOne = quartSpread(taskOne, "euribor3md", lower = 0.02, upper = 0.06, digiCoupon) # computing quarterly spread
+taskOne = swapSpread(taskOne, "euribor3md", lower = 0.02, upper = 0.06, digiCoupon) # computing quarterly spread
 taskOne # quarterly spreads for use in task 1
 
 # Validating our results:
@@ -122,22 +121,56 @@ all(outOfBoundSpreads$spread > 0) # = TRUE
 # and December each year.
 
 # euribor3md
-real = c("12-11") # realised dates
-ratesForBootstrap = c("eurond", "eurtnd", "euriborswd", "euribor1md", "euribor3md") # rates for bootstrapping
-taskTwo = realiser(ratePicker(dat, ratesForBootstrap, "2007-12-01", "2007-12-31"), real, 2007, 2007) # generating data frame
-taskTwo # 3 month euribor linked to the loan amount.
+real = c("03-11", "06-11", "09-11", "12-11") # realised dates
+linkedRate = realiser(ratePicker(dat, "euribor3md", "2006-12-01", "2013-12-31"), real, 2006, 2013) # generating data frame
+linkedRate = linkedRate$euribor3md
+linkedRate
 
 # Annuity Payment:
 # loan = loan amount
 # rate = interest rate
 # n = periods
-annuityPayment = function(loan, rate, n) {
-    numer = (loan * rate * (1 + rate)^n)  # numerator
-    denom = ((1 + rate)^n - 1) # denominator
-    return(numer / denom) # returning the annuity payment
+annuityPayment = function(loan, rate, spread, n) {
+  adjusted_rate = rate + (spread/4)
+  numer = (loan * adjusted_rate * (1 + adjusted_rate)^n)  # numerator
+  denom = ((1 + adjusted_rate)^n - 1) # denominator
+  return(numer / denom) # returning the annuity payment
 }
 
-# Prepayment Schedule:
-prepaymentSchedule = function(df, loan, spread, quarters) {
-    # figure this out
+# Quarterly Prepayment Schedule:
+# startDate = start date of the loan
+# loan = loan amount
+# rate = linked interest rate
+# spread = spread
+# quarters = number of quarters
+quartPrepaymentSchedule = function(startDate, loan, rate, spread, quarters) {
+  # creating data frame
+  df = data.frame(time = seq(as.Date(startDate), by = "quarter", length.out = quarters))
+  
+  # initializing columns
+  df$remaining_loan = 0
+  df$annuity = 0
+  df$principal = 0
+  df$interest = 0
+  
+  # calculating annuity payment
+  annuity_payment = annuityPayment(loan, rate, spread, quarters)
+  
+  # calculating the remaining loan, principal, and interest for each period
+  remaining_loan = loan
+  for (i in 1:nrow(df)) {
+    df$annuity[i] = annuity_payment
+    interest_payment = remaining_loan * (rate + (spread/4))
+    principal_payment = annuity_payment - interest_payment
+    remaining_loan = remaining_loan - principal_payment
+    
+    df$interest[i] = interest_payment
+    df$principal[i] = principal_payment
+    df$remaining_loan[i] = remaining_loan
+  }
+  return(df) # returning the data frame
 }
+
+# Generating the prepayment schedule:
+test = quartPrepaymentSchedule("2007-03-11", loan = 89000000, rate = linkedRate, spread = 0.01, quarters = 25 * 4)
+test
