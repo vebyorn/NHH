@@ -172,5 +172,5 @@ quartPrepaymentSchedule = function(startDate, loan, rate, spread, quarters) {
 }
 
 # Generating the prepayment schedule:
-test = quartPrepaymentSchedule("2007-03-11", loan = 89000000, rate = linkedRate, spread = 0.01, quarters = 25 * 4)
+test = quartPrepaymentSchedule("2007-03-11", loan = 89000000, rate = 0.03, spread = 0.01, quarters = 25 * 4)
 test
