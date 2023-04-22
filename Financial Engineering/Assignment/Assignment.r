@@ -120,57 +120,57 @@ all(outOfBoundSpreads$spread > 0) # = TRUE
 # quarterly basis, on the 11th of March, June, September
 # and December each year.
 
-# euribor3md
-real = c("03-11", "06-11", "09-11", "12-11") # realised dates
-linkedRate = realiser(ratePicker(dat, "euribor3md", "2006-12-01", "2013-12-31"), real, 2006, 2013) # generating data frame
-linkedRate = linkedRate$euribor3md
-linkedRate
-
-# Annuity Payment:
-# loan = loan amount
+# Annuity payment:
+# loan = initial loan amount
 # rate = interest rate
-# n = periods
+# spread = spread
+# n = number of periods
 annuityPayment = function(loan, rate, spread, n) {
-  adjusted_rate = rate + (spread/4)
-  numer = (loan * adjusted_rate * (1 + adjusted_rate)^n)  # numerator
-  denom = ((1 + adjusted_rate)^n - 1) # denominator
-  return(numer / denom) # returning the annuity payment
+  adjustedRate = rate + spread # adjusting rate for spread
+  numer = (loan * adjustedRate * (1 + adjustedRate)^n) # calculating numerator
+  denom = ((1 + adjustedRate)^n - 1) # calculating denominator
+  return(numer / denom) # returning annuity payment
 }
 
-# Quarterly Prepayment Schedule:
-# startDate = start date of the loan
-# loan = loan amount
-# rate = linked interest rate
+# Prepayment schedule:
+# df = data frame
+# loan = initial loan amount
+# rate = interest rate
 # spread = spread
-# quarters = number of quarters
-quartPrepaymentSchedule = function(startDate, loan, rate, spread, quarters) {
-  # creating data frame
-  df = data.frame(time = seq(as.Date(startDate), by = "quarter", length.out = quarters))
+# n = number of periods
+prepaymentSchedule = function(df, loan, rate, spread, n) {
+  df$interest = 0 # initialising interest column
+  df$principal = 0 # initialising principal column
+
+  for (i in 1:nrow(df)) { # iterating through each row
+    rate = df$euribor3md[i] # updating rate
+    df$annuity[i] = annuityPayment(loan, rate, spread, n) # computing annuity payment
   
-  # initializing columns
-  df$remaining_loan = 0
-  df$annuity = 0
-  df$principal = 0
-  df$interest = 0
-  
-  # calculating annuity payment
-  annuity_payment = annuityPayment(loan, rate, spread, quarters)
-  
-  # calculating the remaining loan, principal, and interest for each period
-  remaining_loan = loan
-  for (i in 1:nrow(df)) {
-    df$annuity[i] = annuity_payment
-    interest_payment = remaining_loan * (rate + (spread/4))
-    principal_payment = annuity_payment - interest_payment
-    remaining_loan = remaining_loan - principal_payment
-    
-    df$interest[i] = interest_payment
-    df$principal[i] = principal_payment
-    df$remaining_loan[i] = remaining_loan
+    interestPayment = loan * (rate + spread) # computing interest payment
+    principalPayment = df$annuity[i] - interestPayment # computing principal payment
+    df$interest[i] = interestPayment # updating interest column
+    df$principal[i] = principalPayment # updating principal column
+    loan = loan - principalPayment # updating loan amount
+    df$remaining[i] = loan # updating remaining column
   }
+
   return(df) # returning the data frame
 }
 
-# Generating the prepayment schedule:
-test = quartPrepaymentSchedule("2007-03-11", loan = 89000000, rate = 0.03, spread = 0.01, quarters = 25 * 4)
-test
+
+#####################
+## Task 2: Results ##
+#####################
+# Choosing time interval and rate
+real = c("03-11", "06-11", "09-11", "12-11") # realised dates
+taskTwo = realiser(ratePicker(dat, "euribor3md", "2007-01-01", "2013-12-31"), real, 2006, 2013) # generating data frame
+taskTwo # quarterly euribor3md rates for use in task 2
+
+loan = 89000000; spreadQuarterly = 0.01 / 4; n = 100 # initalising parameters
+taskTwoSchedule = prepaymentSchedule(taskTwo, loan, rate, spreadQuarterly, n) # computing prepayment schedule
+taskTwoSchedule # prepayment schedule
+
+
+
+
+
