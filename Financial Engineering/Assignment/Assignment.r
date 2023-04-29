@@ -83,7 +83,7 @@ swapSpread = function(df, rateColumn, lower, upper, coupon) {
 }
 
 # DigiCoupon:
-# df = data frame
+# prevRate = previous rate
 digiCoupon = function(prevRate) {
     ifelse(prevRate >= 0.02 & prevRate <= 0.06, 0.005, 0)
 }
@@ -110,16 +110,6 @@ all(outOfBoundSpreads$spread > 0) # = TRUE
 ########################
 ## Task 2: Algorithms ##
 ########################
-# Determine the prepayment schedule of the lease-back deal
-# based on the information in the article. Make the following
-# assumptions: The outstanding loan amount of the lease-back
-# deal is 89 million in December 11, 2006 with a remaining
-# time-to-maturity of 25 years. Assume the interest payments
-# of the lease-back deal is tied to the 3-month Euribor rate
-# plus a 1% spread p.a. Assume payments had to be made on
-# quarterly basis, on the 11th of March, June, September
-# and December each year.
-
 # Annuity payment:
 # loan = initial loan amount
 # rate = interest rate
@@ -135,25 +125,31 @@ annuityPayment = function(loan, rate, spread, n) {
 # Prepayment schedule:
 # df = data frame
 # loan = initial loan amount
-# rate = interest rate
+# rate = interest rate (must be second column in data frame)
 # spread = spread
 # n = number of periods
+# Desc: This function computes the interest and principal payments for each period
+#       and updates the data frame with the results. It also computes the remaining
+#       loan amount for each period. The dataframe can in theory be extended until
+#       the remaining loan amount is 0, i.e. maturity. However, you'll need to supply
+#       a dataframe with rates from the start of the loan until maturity. Consider
+#       using yield curves for this.
 prepaymentSchedule = function(df, loan, rate, spread, n) {
   df$interest = 0 # initialising interest column
   df$principal = 0 # initialising principal column
 
   for (i in 1:nrow(df)) { # iterating through each row
-    rate = df$euribor3md[i] # updating rate
+    rate = df[i ,2] # updating rate
     df$annuity[i] = annuityPayment(loan, rate, spread, n) # computing annuity payment
   
     interestPayment = loan * (rate + spread) # computing interest payment
     principalPayment = df$annuity[i] - interestPayment # computing principal payment
+
     df$interest[i] = interestPayment # updating interest column
     df$principal[i] = principalPayment # updating principal column
     loan = loan - principalPayment # updating loan amount
     df$remaining[i] = loan # updating remaining column
   }
-
   return(df) # returning the data frame
 }
 
@@ -161,16 +157,46 @@ prepaymentSchedule = function(df, loan, rate, spread, n) {
 #####################
 ## Task 2: Results ##
 #####################
-# Choosing time interval and rate
+# Choosing time interval and rate:
 real = c("03-11", "06-11", "09-11", "12-11") # realised dates
-taskTwo = realiser(ratePicker(dat, "euribor3md", "2007-01-01", "2013-12-31"), real, 2006, 2013) # generating data frame
+taskTwo = realiser(ratePicker(dat, "euribor3md", "2007-01-01", "2021-12-31"), real, 2006, 2021) # generating data frame
 taskTwo # quarterly euribor3md rates for use in task 2
 
-loan = 89000000; spreadQuarterly = 0.01 / 4; n = 100 # initalising parameters
-taskTwoSchedule = prepaymentSchedule(taskTwo, loan, rate, spreadQuarterly, n) # computing prepayment schedule
-taskTwoSchedule # prepayment schedule
+# Computing quarterly annuity payments:
+loan = 89000000; spreadQuarterly = 0.01 / 4; n = 25 * 4 # initalising parameters
+taskTwoSchedule = prepaymentSchedule(taskTwo, loan, "euribor3md", spreadQuarterly, n) # computing prepayment schedule
+taskTwoSchedule # prepayment schedule for use in task 3
 
+########################
+## Task 3: Algorithms ##
+########################
+# Converting p.a. rates to semi-annual:
+# x = p.a. rate
+paToSemi = function(x) {
+  return((1 + x)^(1/2) - 1)
+}
 
+#####################
+## Task 3: Results ##
+#####################
+# From 2007 to 2021:
+# BST payments to MdP: 4.76% p.a. (semi-annual)
+# MdP payments to BST: 1.76% p.a. (semi-annual) + quarterly spread from task 1
 
+# Loading quarterly data:
+taskThreeQuart = swapSpread(taskTwoSchedule, "euribor3md", lower = 0.02, upper = 0.06, digiCoupon) # computing quarterly spread
+taskThreeQuart$remaining = NULL; taskThreeQuart$interest = NULL; taskThreeQuart$principal = NULL # removing unnecessary columns
+taskThreeQuart
 
+# loading semi-annual data:
+real = c("06-11", "12-11") # realised dates
+taskThreeSemi = realiser(ratePicker(dat, "euribor6md", "2007-01-01", "2021-12-31"), real, 2006, 2021) # generating data frame
+loan = 89000000; spreadSemi = 0.01 / 2; n = 25 * 2 # initalising parameters
+taskThreeSemi = prepaymentSchedule(taskThreeSemi, loan, rate, spreadSemi, n) # computing prepayment schedule
+taskThreeSemi$remaining = NULL; taskThreeSemi$interest = NULL; taskThreeSemi$principal = NULL # removing unnecessary columns
+taskThreeSemi
 
+# Semi-annualisation of per annum fixed rates:
+BSTfixed = paToSemi(0.0476) # semi-annual BST payments to MdP
+MdPfixed = paToSemi(0.0176) # semi-annual MdP payments to BST
+BSTfixed; MdPfixed
