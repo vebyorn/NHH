@@ -110,6 +110,11 @@ all(outOfBoundSpreads$spread > 0) # = TRUE
 ########################
 ## Task 2: Algorithms ##
 ########################
+# Function to turn annualised rates into quarterly rates:
+paToQuart = function(x) {
+  return((1 + x)^(1/4) - 1)
+}
+
 # Annuity payment:
 # loan = initial loan amount
 # rate = interest rate
@@ -135,6 +140,7 @@ annuityPayment = function(loan, rate, spread, n) {
 #       a dataframe with rates from the start of the loan until maturity. Consider
 #       using yield curves for this.
 prepaymentSchedule = function(df, loan, rate, spread, n) {
+  df$annuity = 0 # initialising annuity column
   df$interest = 0 # initialising interest column
   df$principal = 0 # initialising principal column
 
@@ -153,17 +159,22 @@ prepaymentSchedule = function(df, loan, rate, spread, n) {
   return(df) # returning the data frame
 }
 
-
 #####################
 ## Task 2: Results ##
 #####################
+# We decided to calculate the payments for the 25 year loan with the data we had,
+# i.e. until 2013. The remaining amount will still be correct, and if we had the
+# rates until maturity, we could simply extend the data frame until the remaining
+# amount is 0. Alternatively use discount curve or yield curve.
+# Try it out by changing the dates in the realiser and ratePicker functions.
+
 # Choosing time interval and rate:
 real = c("03-11", "06-11", "09-11", "12-11") # realised dates
-taskTwo = realiser(ratePicker(dat, "euribor3md", "2007-01-01", "2021-12-31"), real, 2006, 2021) # generating data frame
+taskTwo = realiser(ratePicker(dat, "euribor3md", "2007-01-01", "2013-12-31"), real, 2007, 2013) # generating data frame
 taskTwo # quarterly euribor3md rates for use in task 2
 
 # Computing quarterly annuity payments:
-loan = 89000000; spreadQuarterly = 0.01 / 4; n = 25 * 4 # initalising parameters
+loan = 89000000; spreadQuarterly = paToQuart(0.01); n = 25 * 4 # initalising parameters
 taskTwoSchedule = prepaymentSchedule(taskTwo, loan, "euribor3md", spreadQuarterly, n) # computing prepayment schedule
 taskTwoSchedule # prepayment schedule for use in task 3
 
@@ -176,27 +187,54 @@ paToSemi = function(x) {
   return((1 + x)^(1/2) - 1)
 }
 
+# Function for computing the swap payments:
+# quartFrame = quarterly data frame
+# semiFrame = semi-annual data frame
+# rBST = rate paid by BST
+# rMdP = rate paid by MdP
+# This function is not very flexible, but it works for the data we have.
+swapPayments = function(quartFrame, semiFrame, rBST, rMdP) {
+  # Semi-annualisation of per annum fixed rates:
+  for (i in 1:nrow(semiFrame)) { # iterating through each row
+    semiFrame$BST[i] = paToSemi(rBST) * semiFrame$remaining[i] # BST payments to MdP
+    semiFrame$MdPsemi[i] = paToSemi(rMdP) * semiFrame$remaining[i] # MdP payments to BST
+  }
+
+  # Quarterly payments:
+  for (i in 1:nrow(quartFrame)) { # iterating through each row
+    quartFrame$MdPquart[i] = quartFrame$spread[i] * quartFrame$remaining[i] # MdP payments to BST
+  }
+
+  taskThree = merge(semiFrame,  quartFrame, by = "time", all = TRUE) # merging data frames
+  taskThree[is.na(taskThree)] = 0 # replacing NA with 0
+
+  for (i in 1:nrow(taskThree)) { # iterating through each row
+    taskThree$MdP[i] = taskThree$MdPquart[i] + taskThree$MdPsemi[i] # total MdP payments to BST
+  }
+
+  taskThree = taskThree[, c("time", "BST", "MdP")] # selecting relevant columns
+  return(taskThree) # returning data frame
+}
+
 #####################
 ## Task 3: Results ##
 #####################
+# Given task 1 asks for the swaps from 2007 to 2013, we decided to compute the
+# payments for the same period. I.e. we shorten down our prepayment plan data frame.
+# You can extend it though by changing the dates in the realiser and ratePicker functions.
 # From 2007 to 2021:
 # BST payments to MdP: 4.76% p.a. (semi-annual)
 # MdP payments to BST: 1.76% p.a. (semi-annual) + quarterly spread from task 1
 
 # Loading quarterly data:
 taskThreeQuart = swapSpread(taskTwoSchedule, "euribor3md", lower = 0.02, upper = 0.06, digiCoupon) # computing quarterly spread
-taskThreeQuart$remaining = NULL; taskThreeQuart$interest = NULL; taskThreeQuart$principal = NULL # removing unnecessary columns
-taskThreeQuart
 
 # loading semi-annual data:
 real = c("06-11", "12-11") # realised dates
-taskThreeSemi = realiser(ratePicker(dat, "euribor6md", "2007-01-01", "2021-12-31"), real, 2006, 2021) # generating data frame
-loan = 89000000; spreadSemi = 0.01 / 2; n = 25 * 2 # initalising parameters
+taskThreeSemi = realiser(ratePicker(dat, "euribor6md", "2007-01-01", "2013-12-31"), real, 2006, 2013) # generating data frame
+loan = 89000000; spreadSemi = paToSemi(0.01); n = 25 * 2 # initalising parameters
 taskThreeSemi = prepaymentSchedule(taskThreeSemi, loan, rate, spreadSemi, n) # computing prepayment schedule
-taskThreeSemi$remaining = NULL; taskThreeSemi$interest = NULL; taskThreeSemi$principal = NULL # removing unnecessary columns
-taskThreeSemi
 
-# Semi-annualisation of per annum fixed rates:
-BSTfixed = paToSemi(0.0476) # semi-annual BST payments to MdP
-MdPfixed = paToSemi(0.0176) # semi-annual MdP payments to BST
-BSTfixed; MdPfixed
+taskThree = swapPayments(taskThreeQuart, taskThreeSemi, rBST = 0.0476, rMdP = 0.0176) # computing swap payments
+taskThree # swap payments made by BST and MdP.
+
