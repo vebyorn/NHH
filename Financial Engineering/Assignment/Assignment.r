@@ -23,7 +23,7 @@ assignmentDataCleaner = function(df) {
 }
 
 # Loading and cleaning data
-csv = read.csv("C:/Users/vebky/FIE446/Assignment/EUR-Market-Data.csv") # reading in csv
+csv = read.csv("C:/Users/vebky/Desktop/EUR-Market-Data.csv") # reading in csv
 dat = assignmentDataCleaner(csv); str(dat) # cleaning the csv
 
 ########################
@@ -53,10 +53,9 @@ realiser = function(df, real, startYear, endYear) {
         for (j in 1:length(real)) {
             # this is specifically to help with the months where the desired day is on a weekend
             # we chose to roll forward to the next business day, rather than rolling backwards
-            targetDate = as.Date(paste0(i, "-", real[j]), format = "%Y-%m-%d") # target date
-            df$realised[df$time == targetDate] = 1
-            df$realised[df$time == targetDate + 1] = 1
-            df$realised[df$time == targetDate + 2] = 1
+            df$realised[df$time == as.Date(paste0(i, "-", real[j]), format = "%Y-%m-%d")] = 1
+            df$realised[df$time == as.Date(paste0(i, "-", real[j]), format = "%Y-%m-%d") + 1] = 1
+            df$realised[df$time == as.Date(paste0(i, "-", real[j]), format = "%Y-%m-%d") + 2] = 1
         }
     }
     df = df[df$realised == 1,] # selecting realised dates
@@ -94,7 +93,7 @@ digiCoupon = function(prevRate) {
 #####################
 # Choosing time interval and rate
 real = c("03-11", "06-11", "09-11", "12-11") # realised dates
-taskOne = realiser(ratePicker(dat, "euribor3md", "2007-03-01", "2013-12-31"), real, 2007, 2013) # generating data frame
+taskOne = realiser(ratePicker(dat, "euribor3md", "2007-01-01", "2013-12-31"), real, 2007, 2013) # generating data frame
 taskOne # quarterly euribor3md rates for use in task 1
 
 # Computing quarterly spread:
@@ -393,6 +392,41 @@ futureValue = function(df, rates, year, month, day, maturity, dcount, init = FAL
 }
 
 
+
+#############################
+## Task 4: Initialize Data ##
+#############################
+# Bootstrap the discount curve to market data obtained on December 11, 2006.
+# Overnight deposits
+onRates = c("eurond", "eurtnd") # overnight deposits
+onDep = valueExtract(dat, onRates, 2006, 12, 11) # fetching rates
+onDep
+
+# Money Market deposits
+mmRates = c("euriborswd", "euribor1md") # money market deposits
+mmMats = c("2006-12-18", "2007-01-11") # maturities
+mmDep = matValueExtract(dat, mmRates, 2006, 12, 11, maturity = mmMats, dcount = "act360") # fetching rates and maturities
+mmDep
+
+# Futures
+futRates = c("FEIcm1", "FEIcm2", "FEIcm3", "FEIcm4", "FEIcm5") # futures
+futMats = c("2007-01-15", "2007-06-12", "2007-09-11", "2007-12-11", "2008-03-11", "2008-06-11") # maturities
+futDep = futureValue(dat, futRates, 2006, 12, 11, maturity = futMats, dcount = "act360", init = TRUE) # fetching rates and maturities
+futDep
+
+# Swaps
+swapRates = c("eurirs2y", "eurirs3y", "eurirs4y", "eurirs5y", "eurirs7y", "eurirs10y", "eurirs12y", "eurirs15y", "eurirs20y") # swaps
+swapMats = c("2008-12-11", "2009-12-13", "2010-12-12", "2011-12-11", "2013-12-11", "2016-12-11", "2018-12-11", "2021-12-12", "2026-12-13") # maturities
+swapDep = matValueExtract(dat, swapRates, 2006, 12, 11, maturity = swapMats, dcount = "act360") # fetching rates and maturities
+swapDep
+
+# testing
+t = c(0)
+Z = c(1)
+
+
+
+
 ##### Bootstrap function #####
 # ON = overnight deposits
 # MM = money market deposits
@@ -465,40 +499,6 @@ bootstrap = function(ON, MM, Fut, IRS) {
 
   return(list(t,Z))
 }
-
-#############################
-## Task 4: Initialize Data ##
-#############################
-# Bootstrap the discount curve to market data obtained on December 11, 2006.
-# Overnight deposits
-onRates = c("eurond", "eurtnd") # overnight deposits
-onDep = valueExtract(dat, onRates, 2006, 12, 11) # fetching rates
-onDep
-
-# Money Market deposits
-mmRates = c("euriborswd", "euribor1md") # money market deposits
-mmMats = c("2006-12-18", "2007-01-11") # maturities
-mmDep = matValueExtract(dat, mmRates, 2006, 12, 11, maturity = mmMats, dcount = "act360") # fetching rates and maturities
-mmDep
-
-# Futures
-futRates = c("FEIcm1", "FEIcm2", "FEIcm3", "FEIcm4", "FEIcm5") # futures
-futMats = c("2007-01-15", "2007-06-12", "2007-09-11", "2007-12-11", "2008-03-11", "2008-06-11") # maturities
-futDep = futureValue(dat, futRates, 2006, 12, 11, maturity = futMats, dcount = "act360", init = TRUE) # fetching rates and maturities
-futDep
-
-# Swaps
-swapRates = c("eurirs2y", "eurirs3y", "eurirs4y", "eurirs5y", "eurirs7y", "eurirs10y", "eurirs12y", "eurirs15y", "eurirs20y") # swaps
-swapMats = c("2008-12-11", "2009-12-13", "2010-12-12", "2011-12-11", "2013-12-11", "2016-12-11", "2018-12-11", "2021-12-12", "2026-12-13") # maturities
-swapDep = matValueExtract(dat, swapRates, 2006, 12, 11, maturity = swapMats, dcount = "act360") # fetching rates and maturities
-swapDep
-
-  t = c(0)
-  Z = c(1)
-
-
-
-
 
 
 res = bootstrap(ON = onDep, MM = mmDep, Fut = futDep, IRS = swapDep)
