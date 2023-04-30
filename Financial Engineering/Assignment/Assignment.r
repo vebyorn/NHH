@@ -494,6 +494,7 @@ swapDep
 taskFour = bootstrap(ON = onDep, MM = mmDep, Fut = futDep, IRS = swapDep)
 taskFour # Result: Discount Factors and their respective maturities.
 
+# Plotting discount factors:
 plot(x=taskFour$t,
      y=taskFour$Z,
      type="l",
