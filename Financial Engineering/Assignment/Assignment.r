@@ -271,22 +271,6 @@ delta = function(t1, t2, dcount) {
     d2 = as.Date(t2)
     days = as.numeric(d2 - d1)
     delta = days / 365.242
-  } else if (dcount == "30/360") {
-    y1 = as.numeric(format(t1, "%Y"))
-    y2 = as.numeric(format(t2, "%Y"))
-    m1 = as.numeric(format(t1, "%m"))
-    m2 = as.numeric(format(t2, "%m"))
-    d1 = as.numeric(format(t1, "%d"))
-    d2 = as.numeric(format(t2, "%d"))
-    if (d1 == 31) {
-      d1 = 30
-    }
-    if (d2 == 31 & d1 >= 30) {
-      d2 = 1
-      m2 = m2 + 1
-    }
-    days = 360 * (y2 - y1) + 30 * (m2 - m1 - 1) + max(0, 30 - d1) + min(30, d2 - 1)
-    delta = days / 360
   }
   return(delta)
 }
