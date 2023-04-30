@@ -1,6 +1,17 @@
 ###############################################
 ## FIE446 Assignment Spring 2023, Group: ??? ##
 ###############################################
+## Our script is structured as follows:       ##
+## 1. Alogrithms we made for the task.        ##
+## 2. Results for the task.                   ##     
+##                                            ##
+##                                            ##
+## Warning! The algorithms have function      ##
+## dependencies that cross tasks. For example ##
+## the swap spread algorithm depends on the   ##
+## digiCoupon algorithm. Etc. Do not clean    ##
+## environment during inspection.             ##
+################################################
 
 # initialise environment
 rm(list=ls())
