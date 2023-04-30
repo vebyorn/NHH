@@ -494,19 +494,11 @@ swapDep
 taskFour = bootstrap(ON = onDep, MM = mmDep, Fut = futDep, IRS = swapDep)
 taskFour # Result: Discount Factors and their respective maturities.
 
-# Ploting the Discount Factors:
-taskFourPlot = data.frame(description = c("ON/TN", "MM", "FEIcm1", "FEIcm2", 
-                                          "FEIcm3", "FEIcm4", "FEIcm5","2Y",
-                                          "3Y", "4Y", "5Y", "7Y", "10Y", "12Y", 
-                                          "15Y", "20Y"),
-                          year = taskFour$t,
-                          rate = taskFour$Z)
-
-plot(x=taskFourPlot$year,
-     y=taskFourPlot$rate,
+plot(x=taskFour$t,
+     y=taskFour$Z,
      type="l",
      xlab = "Time (Years)",
      ylab = "Discount Factor")
-points(x=taskFourPlot$year,
-       y=taskFourPlot$rate,
+points(x=taskFour$t,
+       y=taskFour$Z,
        col="blue", pch=21)
