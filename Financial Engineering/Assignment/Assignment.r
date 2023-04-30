@@ -332,7 +332,6 @@ objective_function_IRS = function(guess_Z, Swap_rate, Z0ti, discount_factors) {
   
   # Calculate Error
   e = (Swap_rate_estimate-Swap_rate)^2
-  
   return(e)
 }  
 
@@ -391,7 +390,80 @@ futureValue = function(df, rates, year, month, day, maturity, dcount, init = FAL
   return(res)
 }
 
+##### Bootstrap function #####
+# ON = overnight deposits
+# MM = money market deposits
+# Fut = futures
+# IRS = swaps
+bootstrap = function(ON, MM, Fut, IRS) {
+  # Initialise vectors
+  t = c(0)
+  Z = c(1)
+  FRAs = c()
 
+  # Overnight and Tomorrow Next Deposits
+  Z = c(Z, 1 / ((1 + (1/365.242)*ON[1]) * (1 + (3/365.242)*ON[2])))
+  t = c(t, 4/365.242)
+
+  # MM Deposits
+  Z = c(Z, 1/((1 + (1/365.242) *  MM$price[1]) * (1 + (10/365.242) * MM$price[2]))) # 1 week and 1 month MM discount factors
+  t = c(t, MM$maturity[2]) # 1 week and 1 month MM accrual times
+
+  # From Futures to FRAs
+  priceFut = Fut$price
+  maturityFut = Fut$maturity
+  # Map Futures into FRAs and adj. for convexity
+  for (i in 2:(length(priceFut))) {
+    F = priceFut[i]
+    T2 = maturityFut[i]
+    T1 = maturityFut[i-1]
+    vals = con.adj(F=F, T2=T2, T1=T1, sigma=0.006)
+    FRAs = c(FRAs, vals)
+  }
+  # remove nas from fras
+  FRAs = FRAs[!is.na(FRAs)]
+
+  # FRAs 
+  for(i in 1:length(FRAs)){
+    T1 = maturityFut[i]
+    T2 = maturityFut[i + 1]
+    rate = FRAs[i]
+    values = optimize(objective_function, interval = c(0, 1),f0 = rate,
+                       T1 = T1, T2 = T2, maximum = FALSE)$minimum
+    Z = c(Z, values*Z[2])
+    t = c(t, T2)
+  }
+
+  # Swaps
+  for (i in 1:length(IRS$maturity)) { 
+    # Determine coupon dates
+    current_swap_maturity = IRS$maturity[i] + 4/360
+    coupon_dates = c(t[2], seq(from = t[2] + 0.5, to = current_swap_maturity-0.1, by = 0.5), current_swap_maturity)
+
+    # Interpolate for coupon dates and drop unavailable dates 
+    discount_factors_int = na.omit(approx(x = t, y = Z, xout = coupon_dates)$y)
+    
+    # Extrapolate for missing coupon dates with lm
+    coupon_dates_ext = na.omit(coupon_dates[length(discount_factors_int)+1:length(coupon_dates)])
+    model = lm(Z ~ t)
+    discount_factors_ext = predict(model, newdata = data.frame(t = coupon_dates_ext))
+    
+    # Add discount factors together
+   discount_factors = c(discount_factors_int, discount_factors_ext)
+    
+    # Optimize model
+    Swap_rate = IRS$price[i]
+    Z0ti = Z[2]
+    values = optimize(objective_function_IRS, interval = c(0, 1), Swap_rate = Swap_rate,
+                       Z0ti = Z0ti, discount_factors = discount_factors,
+                       maximum = FALSE)$minimum
+    
+    Z = c(Z, values)
+    t = c(t, current_swap_maturity)
+  }
+  # return dataframe with Z and t columns
+  return(data.frame(Z, t))
+}
 
 #############################
 ## Task 4: Initialize Data ##
@@ -420,102 +492,25 @@ swapMats = c("2008-12-11", "2009-12-13", "2010-12-12", "2011-12-11", "2013-12-11
 swapDep = matValueExtract(dat, swapRates, 2006, 12, 11, maturity = swapMats, dcount = "act360") # fetching rates and maturities
 swapDep
 
-# testing
-t = c(0)
-Z = c(1)
+##############################
+## Task 4: Results and Plot ##
+##############################
+# Computing discount factors:
+taskFour = bootstrap(ON = onDep, MM = mmDep, Fut = futDep, IRS = swapDep)
+taskFour
+taskFourPlot = data.frame(description = c("ON/TN", "MM", "FEIcm1", "FEIcm2", 
+                                          "FEIcm3", "FEIcm4", "FEIcm5","2Y",
+                                          "3Y", "4Y", "5Y", "7Y", "10Y", "12Y", 
+                                          "15Y", "20Y"),
+                 year=taskFour$t,
+                 rate=taskFour$Z)
 
-
-
-
-##### Bootstrap function #####
-# ON = overnight deposits
-# MM = money market deposits
-# Fut = futures
-# IRS = swaps
-bootstrap = function(ON, MM, Fut, IRS) {
-  # Initialize
-  t = c(0)
-  Z = c(1)
-  FRAs = c()
-
-  # Map Futures into FRAs and adj. for convexity
-  for (i in 2:(length(Fut))) {
-    F = Fut[i]$price
-    T2 = Fut[i]$maturity
-    T1 = Fut[i-1]$maturity
-    values = con.adj(F=F, T2=T2, T1=T1, sigma=0.006)
-    FRAs[i-1] = list(rate=values, T1=T1, T2=T2)
-  }
-  
-  # Overnight and Tomorrow Next Deposits
-  Z = c(Z, 1/((1+(1/365.242)*ON[1])/(1+(3/365.242)*ON[2])))
-  t = c(t, 4/365.242)
-  
-  # MM Deposits
-  Z = c(Z, Z[2]/(1+MM[1]$maturity*MM[1]$price), Z[2]/(1+MM[2]$maturity*MM[2]$price))
-  t = c(t, t[2]+MM[1]$maturity, t[2]+MM[2]$maturity)
-  
-  
-  # FRAs 
-  for(i in 1:length(FRAs)){
-    T1 = FRAs[i]$T1
-    T2 = FRAs[i]$T2
-    rate = FRAs[i]$rate
-    values = optimize(objective_function, interval = c(0, 1),f0 = rate,
-                       T1 = T1, T2 = T2, maximum = FALSE)$minimum
-    Z = c(Z, values*Z[2])
-    t = c(t, T2)
-  }
-  
-  
-  #IRS 
-  for(i in 1:length(IRS)) {
-    
-    # Determine coupon dates
-    swap_maturity = IRS[i]$maturity + 4/360
-    coupon_dates = c(t[2], seq(from = t[2] + 0.5, to = swap_maturity-0.1, by = 0.5), swap_maturity)
-    
-    # Interpolate for coupon dates and drop unavailable dates 
-    discount_factors_int = na.omit(approx(x = t, y = Z, xout = coupon_dates)$y)
-    
-    # Extrapolate for missing coupon dates with lm
-    coupon_dates_ext = na.omit(coupon_dates[length(discount_factors_int)+1:length(coupon_dates)])
-    model = lm(Z ~ t)
-    discount_factors_ext = predict(model, newdata = data.frame(t = coupon_dates_ext))
-    
-    # Add discount factors together
-    discount_factors = c(discount_factors_int, discount_factors_ext)
-    
-    # Optimize model
-    Swap_rate = IRS[i]$rate
-    Z0ti = Z[2]
-    values = optimize(objective_function_IRS, interval = c(0, 1), Swap_rate = Swap_rate,
-                       Z0ti = Z0ti, discount_factors = discount_factors,
-                       maximum = FALSE)$minimum
-    
-    Z = c(Z, values)
-    t = c(t, swap_maturity)
-  }
-
-  return(list(t,Z))
-}
-
-
-res = bootstrap(ON = onDep, MM = mmDep, Fut = futDep, IRS = swapDep)
-taskFour = data.frame(description = c("Spot", "ON/TN","1W","1M", "March23","June23", "Sep23",
-                                 "dec23", "March24","2Y","3Y", "4Y", "5Y","6Y", 
-                                 "7Y", "10Y", "12Y", "15Y", "20Y"),
-                 year=t,
-                 rate=Z)
-
-# Plot 
-plot(x=taskFour$year,
-     y=taskFour$rate,
+# Ploting the Discount Factors:
+plot(x=taskFourPlot$year,
+     y=taskFourPlot$rate,
      type="l",
      xlab = "Time (Years)",
      ylab = "Discount Factor")
-
-
-points(x=taskFour$year,
-       y=taskFour$rate,
+points(x=taskFourPlot$year,
+       y=taskFourPlot$rate,
        col="blue", pch=21)
