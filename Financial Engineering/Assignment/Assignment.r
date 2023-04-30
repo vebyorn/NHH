@@ -444,7 +444,7 @@ bootstrap = function(ON, MM, Fut, IRS) {
     discount_factors_ext = predict(model, newdata = data.frame(t = coupon_dates_ext))
     
     # Add discount factors together
-   discount_factors = c(discount_factors_int, discount_factors_ext)
+    discount_factors = c(discount_factors_int, discount_factors_ext)
     
     # Optimize model
     Swap_rate = IRS$price[i]
@@ -499,9 +499,8 @@ taskFourPlot = data.frame(description = c("ON/TN", "MM", "FEIcm1", "FEIcm2",
                                           "FEIcm3", "FEIcm4", "FEIcm5","2Y",
                                           "3Y", "4Y", "5Y", "7Y", "10Y", "12Y", 
                                           "15Y", "20Y"),
-                 year=taskFour$t,
-                 rate=taskFour$Z)
-
+                          year = taskFour$t,
+                          rate = taskFour$Z)
 
 plot(x=taskFourPlot$year,
      y=taskFourPlot$rate,
