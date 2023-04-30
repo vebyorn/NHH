@@ -10,7 +10,7 @@
 ## dependencies that cross tasks. For example ##
 ## the swap spread algorithm depends on the   ##
 ## digiCoupon algorithm. Etc. Do not clean    ##
-## environment during inspection.             ##
+## environment during inspection! :-)         ##
 ################################################
 
 # initialise environment
