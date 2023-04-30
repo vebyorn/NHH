@@ -16,9 +16,9 @@
 # initialise environment
 rm(list=ls())
 
-#####################
-## Data Processing ##
-#####################
+################################
+## Assigment: Data Processing ##
+################################
 # Packaging in the cleaning into a function for brevity
 # df = data frame
 assignmentDataCleaner = function(df) {
