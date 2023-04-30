@@ -53,9 +53,10 @@ realiser = function(df, real, startYear, endYear) {
         for (j in 1:length(real)) {
             # this is specifically to help with the months where the desired day is on a weekend
             # we chose to roll forward to the next business day, rather than rolling backwards
-            df$realised[df$time == as.Date(paste0(i, "-", real[j]), format = "%Y-%m-%d")] = 1
-            df$realised[df$time == as.Date(paste0(i, "-", real[j]), format = "%Y-%m-%d") + 1] = 1
-            df$realised[df$time == as.Date(paste0(i, "-", real[j]), format = "%Y-%m-%d") + 2] = 1
+            targetDate = as.Date(paste0(i, "-", real[j]), format = "%Y-%m-%d") # target date
+            df$realised[df$time == targetDate] = 1
+            df$realised[df$time == targetDate + 1] = 1
+            df$realised[df$time == targetDate + 2] = 1
         }
     }
     df = df[df$realised == 1,] # selecting realised dates
@@ -238,3 +239,283 @@ taskThreeSemi = prepaymentSchedule(taskThreeSemi, loan, rate, spreadSemi, n) # c
 taskThree = swapPayments(taskThreeQuart, taskThreeSemi, rBST = 0.0476, rMdP = 0.0176) # computing swap payments
 taskThree # swap payments made by BST and MdP.
 
+
+########################
+## Task 4: Algorithms ##
+########################
+
+# Year Fraction Function:
+# t1 = start date
+# t2 = end date
+# dcount = day count convention
+# Desc:
+# This function computes the year fraction between two dates given a day count convention.
+delta = function(t1, t2, dcount) {
+  if (dcount == "act360") {
+    d1 = as.Date(t1)
+    d2 = as.Date(t2)
+    days = as.numeric(d2 - d1)
+    delta = days / 360
+  } else if (dcount == "act365") {
+    d1 = as.Date(t1)
+    d2 = as.Date(t2)
+    days = as.numeric(d2 - d1)
+    delta = days / 365.242
+  } else if (dcount == "30/360") {
+    y1 = as.numeric(format(t1, "%Y"))
+    y2 = as.numeric(format(t2, "%Y"))
+    m1 = as.numeric(format(t1, "%m"))
+    m2 = as.numeric(format(t2, "%m"))
+    d1 = as.numeric(format(t1, "%d"))
+    d2 = as.numeric(format(t2, "%d"))
+    if (d1 == 31) {
+      d1 = 30
+    }
+    if (d2 == 31 & d1 >= 30) {
+      d2 = 1
+      m2 = m2 + 1
+    }
+    days = 360 * (y2 - y1) + 30 * (m2 - m1 - 1) + max(0, 30 - d1) + min(30, d2 - 1)
+    delta = days / 360
+  }
+  return(delta)
+}
+
+# Convexity Adjustment
+# F = forward rate
+# T1 = start date
+# T2 = end date
+# sigma = volatility
+# Desc:
+# This function computes the convexity adjustment for a forward rate.
+con.adj = function(F, T1, T2, sigma){
+  f0T1T2 = F - (sigma^2*T1*T2)/2
+  return(f0T1T2)
+}
+
+# FRA interpolation
+# guess_z = guess for discount factor
+# f0 = forward rate
+# T1 = start date
+# T2 = end date
+objective_function = function(guess_Z, f0, T1, T2) {
+  # Step 1: Extend Z and t
+  Z = c(1, guess_Z)    
+  t = c(0, T2)
+  
+  # Step 2: Calculate Z(0, T1) by linear interpolation between log(Z(0, 0)) and log(Z(0, T2))
+  log_Z_T1 = approx(t,log(Z), xout=T1, method = "linear")$y
+  Z_T1 = exp(log_Z_T1)
+  
+  # Step 3: Calculate the forward rate f'(0,T1,T2) using the estimated discount factors
+  f0.new = (1 / (T2 - T1)) * ((Z_T1/guess_Z)-1)
+  
+  # Calculate Error
+  e = (f0.new-f0)^2
+  
+  return(e) # return error
+}
+
+# IRS Interpolation
+# guess_z = guess for discount factor
+# Swap_rate = swap rate
+# Z0ti = discount factor
+# discount_factors = discount factors
+objective_function_IRS = function(guess_Z, Swap_rate, Z0ti, discount_factors) {
+  # Step 1: Extend Z and t
+  Z1 = c(1, discount_factors[1:length(discount_factors)-1], guess_Z)    
+  
+  # Step 2: Calculate the swap rate using the estimated discount factors
+  nominator = 1 - Z1[length(Z1)]/Z0ti
+  denominator  = 0.5 * sum(Z1[3:length(Z1)]) / Z0ti
+  Swap_rate_estimate = nominator/denominator
+  
+  
+  # Calculate Error
+  e = (Swap_rate_estimate-Swap_rate)^2
+  
+  return(e)
+}  
+
+# Function to extract the values from the dataframe
+# df = dataframe
+# rates = vector with name of desired rates
+# year = numeric year
+# month = numeric month
+# day = numeric day
+valueExtract = function(df, rates, year, month, day) {
+  desYear = paste(year, month, day, sep="-") # desired year
+  df = realiser(ratePicker(df, rates, desYear, desYear), paste(month, day, sep="-"), year, year) # generating data frame
+  df_vec = c() # initializing vector
+  for (i in 1:length(rates)) { # looping through rates
+    df_vec = c(df_vec, df[[rates[i]]]) # extracting values
+  }
+  return(df_vec) # return vector
+}
+
+# Function to extract the values and maturities from the dataframe
+# df = dataframe
+# rates = vector with name of desired rates
+# year = numeric year
+# month = numeric month
+# day = numeric day
+# DTM = days to maturity
+# dcount = day count convention
+matValueExtract = function(df, rates, year, month, day, maturity, dcount) {
+  val = valueExtract(df, rates, year, month, day)
+  mat = delta(as.Date(paste(year, month, day, sep="-")), maturity, dcount)
+  mat_vec = c() # initializing vector
+  for (i in 1:length(rates)) { # looping through rates
+    mat_vec = c(mat_vec, mat[[i]]) # extracting values
+  }
+  fin = list(val, mat_vec)
+  # rename list elements
+  names(fin) = c("price", "maturity")
+  return(fin)
+  }
+
+# Future value
+# df = dataframe
+# rates = vector with name of desired rates
+# year = numeric year
+# month = numeric month
+# day = numeric day
+# maturity = maturity date
+# dcount = day count convention
+# init = boolean to add 0 to the beginning of the price vector
+futureValue = function(df, rates, year, month, day, maturity, dcount, init = FALSE) {
+  res = matValueExtract(df, rates, year, month, day, maturity, dcount)
+  res[[1]] = (100 - res[[1]] * 100) / 100
+   if (init == TRUE) {
+    res[[1]] = c(0, res[[1]])
+  }
+  return(res)
+}
+
+
+##### Bootstrap function #####
+# ON = overnight deposits
+# MM = money market deposits
+# Fut = futures
+# IRS = swaps
+bootstrap = function(ON, MM, Fut, IRS) {
+  # Initialize
+  t = c(0)
+  Z = c(1)
+  FRAs = c()
+
+  # Map Futures into FRAs and adj. for convexity
+  for (i in 2:(length(Fut))) {
+    F = Fut[i]$price
+    T2 = Fut[i]$maturity
+    T1 = Fut[i-1]$maturity
+    values = con.adj(F=F, T2=T2, T1=T1, sigma=0.006)
+    FRAs[i-1] = list(rate=values, T1=T1, T2=T2)
+  }
+  
+  # Overnight and Tomorrow Next Deposits
+  Z = c(Z, 1/((1+(1/365.242)*ON[1])/(1+(3/365.242)*ON[2])))
+  t = c(t, 4/365.242)
+  
+  # MM Deposits
+  Z = c(Z, Z[2]/(1+MM[1]$maturity*MM[1]$price), Z[2]/(1+MM[2]$maturity*MM[2]$price))
+  t = c(t, t[2]+MM[1]$maturity, t[2]+MM[2]$maturity)
+  
+  
+  # FRAs 
+  for(i in 1:length(FRAs)){
+    T1 = FRAs[i]$T1
+    T2 = FRAs[i]$T2
+    rate = FRAs[i]$rate
+    values = optimize(objective_function, interval = c(0, 1),f0 = rate,
+                       T1 = T1, T2 = T2, maximum = FALSE)$minimum
+    Z = c(Z, values*Z[2])
+    t = c(t, T2)
+  }
+  
+  
+  #IRS 
+  for(i in 1:length(IRS)) {
+    
+    # Determine coupon dates
+    swap_maturity = IRS[i]$maturity + 4/360
+    coupon_dates = c(t[2], seq(from = t[2] + 0.5, to = swap_maturity-0.1, by = 0.5), swap_maturity)
+    
+    # Interpolate for coupon dates and drop unavailable dates 
+    discount_factors_int = na.omit(approx(x = t, y = Z, xout = coupon_dates)$y)
+    
+    # Extrapolate for missing coupon dates with lm
+    coupon_dates_ext = na.omit(coupon_dates[length(discount_factors_int)+1:length(coupon_dates)])
+    model = lm(Z ~ t)
+    discount_factors_ext = predict(model, newdata = data.frame(t = coupon_dates_ext))
+    
+    # Add discount factors together
+    discount_factors = c(discount_factors_int, discount_factors_ext)
+    
+    # Optimize model
+    Swap_rate = IRS[i]$rate
+    Z0ti = Z[2]
+    values = optimize(objective_function_IRS, interval = c(0, 1), Swap_rate = Swap_rate,
+                       Z0ti = Z0ti, discount_factors = discount_factors,
+                       maximum = FALSE)$minimum
+    
+    Z = c(Z, values)
+    t = c(t, swap_maturity)
+  }
+
+  return(list(t,Z))
+}
+
+#############################
+## Task 4: Initialize Data ##
+#############################
+# Bootstrap the discount curve to market data obtained on December 11, 2006.
+# Overnight deposits
+onRates = c("eurond", "eurtnd") # overnight deposits
+onDep = valueExtract(dat, onRates, 2006, 12, 11) # fetching rates
+onDep
+
+# Money Market deposits
+mmRates = c("euriborswd", "euribor1md") # money market deposits
+mmMats = c("2006-12-18", "2007-01-11") # maturities
+mmDep = matValueExtract(dat, mmRates, 2006, 12, 11, maturity = mmMats, dcount = "act360") # fetching rates and maturities
+mmDep
+
+# Futures
+futRates = c("FEIcm1", "FEIcm2", "FEIcm3", "FEIcm4", "FEIcm5") # futures
+futMats = c("2007-01-15", "2007-06-12", "2007-09-11", "2007-12-11", "2008-03-11", "2008-06-11") # maturities
+futDep = futureValue(dat, futRates, 2006, 12, 11, maturity = futMats, dcount = "act360", init = TRUE) # fetching rates and maturities
+futDep
+
+# Swaps
+swapRates = c("eurirs2y", "eurirs3y", "eurirs4y", "eurirs5y", "eurirs7y", "eurirs10y", "eurirs12y", "eurirs15y", "eurirs20y") # swaps
+swapMats = c("2008-12-11", "2009-12-13", "2010-12-12", "2011-12-11", "2013-12-11", "2016-12-11", "2018-12-11", "2021-12-12", "2026-12-13") # maturities
+swapDep = matValueExtract(dat, swapRates, 2006, 12, 11, maturity = swapMats, dcount = "act360") # fetching rates and maturities
+swapDep
+
+  t = c(0)
+  Z = c(1)
+
+
+
+
+
+
+res = bootstrap(ON = onDep, MM = mmDep, Fut = futDep, IRS = swapDep)
+taskFour = data.frame(description = c("Spot", "ON/TN","1W","1M", "March23","June23", "Sep23",
+                                 "dec23", "March24","2Y","3Y", "4Y", "5Y","6Y", 
+                                 "7Y", "10Y", "12Y", "15Y", "20Y"),
+                 year=t,
+                 rate=Z)
+
+# Plot 
+plot(x=taskFour$year,
+     y=taskFour$rate,
+     type="l",
+     xlab = "Time (Years)",
+     ylab = "Discount Factor")
+
+
+points(x=taskFour$year,
+       y=taskFour$rate,
+       col="blue", pch=21)
