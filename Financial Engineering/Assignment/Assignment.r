@@ -40,8 +40,6 @@ dat = assignmentDataCleaner(csv); str(dat) # cleaning the csv
 ########################
 ## Task 1: Algorithms ##
 ########################
-# Computing realised quarterly spread of the swap 
-# for the time period March 11, 2007 and December 11, 2013.
 
 # Function to select rate and time period:
 # df = data frame
@@ -102,19 +100,22 @@ digiCoupon = function(prevRate) {
 #####################
 ## Task 1: Results ##
 #####################
-# Choosing time interval and rate
+# Computing realised quarterly spread of the swap 
+# for the time period March 11, 2007 and December 11, 2013.
+
+# Fetching data:
 real = c("03-11", "06-11", "09-11", "12-11") # realised dates
 taskOne = realiser(ratePicker(dat, "euribor3md", "2007-01-01", "2013-12-31"), real, 2007, 2013) # generating data frame
 taskOne # quarterly euribor3md rates for use in task 1
 
 # Computing quarterly spread:
 taskOne = swapSpread(taskOne, "euribor3md", lower = 0.02, upper = 0.06, digiCoupon) # computing quarterly spread
-taskOne # quarterly spreads for use in task 1
+taskOne # Result: Quarterly spreads for the time period March 11, 2007 and December 11, 2013.
 
 # Validating our results:
 boundSpreads = taskOne[taskOne$euribor3md >= 0.02 & taskOne$euribor3md  <= 0.06,] # only rates in bounds
 outOfBoundSpreads = taskOne[taskOne$euribor3md < 0.02 | taskOne$euribor3md  > 0.06,] # only rates out of bounds
-# If our calculations are correct, the following should be true of their spreads:
+# The following should be true of the spreads:
 all(boundSpreads$spread == 0) # = TRUE
 all(outOfBoundSpreads$spread > 0) # = TRUE
 
@@ -176,13 +177,12 @@ prepaymentSchedule = function(df, loan, rate, spread, n) {
 # We decided to calculate the payments for the 25 year loan with the data we had,
 # i.e. until 2013. The remaining amount will still be correct, and if we had the
 # rates until maturity, we could simply extend the data frame until the remaining
-# amount is 0. Alternatively use discount curve or yield curve.
+# amount is 0.
 # Try it out by changing the dates in the realiser and ratePicker functions.
 
-# Choosing time interval and rate:
+# Fetching data:
 real = c("03-11", "06-11", "09-11", "12-11") # realised dates
 taskTwo = realiser(ratePicker(dat, "euribor3md", "2007-01-01", "2013-12-31"), real, 2007, 2013) # generating data frame
-taskTwo # quarterly euribor3md rates for use in task 2
 
 # Computing quarterly annuity payments:
 loan = 89000000; spreadQuarterly = paToQuart(0.01); n = 25 * 4 # initalising parameters
@@ -247,7 +247,7 @@ loan = 89000000; spreadSemi = paToSemi(0.01); n = 25 * 2 # initalising parameter
 taskThreeSemi = prepaymentSchedule(taskThreeSemi, loan, rate, spreadSemi, n) # computing prepayment schedule
 
 taskThree = swapPayments(taskThreeQuart, taskThreeSemi, rBST = 0.0476, rMdP = 0.0176) # computing swap payments
-taskThree # swap payments made by BST and MdP.
+taskThree # Swap payments made by BST and MdP.
 
 
 ########################
@@ -508,7 +508,8 @@ swapDep
 ##############################
 # Computing discount factors:
 taskFour = bootstrap(ON = onDep, MM = mmDep, Fut = futDep, IRS = swapDep)
-taskFour
+taskFour # Result: Discount Factors and their respective maturities.
+
 taskFourPlot = data.frame(description = c("ON/TN", "MM", "FEIcm1", "FEIcm2", 
                                           "FEIcm3", "FEIcm4", "FEIcm5","2Y",
                                           "3Y", "4Y", "5Y", "7Y", "10Y", "12Y", 
