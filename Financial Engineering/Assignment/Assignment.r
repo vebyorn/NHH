@@ -34,7 +34,7 @@ assignmentDataCleaner = function(df) {
 }
 
 # Loading and cleaning data
-csv = read.csv("C:/Users/vebky/Desktop/EUR-Market-Data.csv") # reading in csv
+csv = read.csv("C:/Users/vebky/FIE446/Assignment/EUR-Market-Data.csv") # reading in csv
 dat = assignmentDataCleaner(csv); str(dat) # cleaning the csv
 
 ########################
@@ -495,11 +495,146 @@ taskFour = bootstrap(ON = onDep, MM = mmDep, Fut = futDep, IRS = swapDep)
 taskFour # Result: Discount Factors and their respective maturities.
 
 # Plotting discount factors:
-plot(x=taskFour$t,
-     y=taskFour$Z,
-     type="l",
+plot(x = taskFour$t,
+     y = taskFour$Z,
+     type = "l",
      xlab = "Time (Years)",
      ylab = "Discount Factor")
-points(x=taskFour$t,
-       y=taskFour$Z,
-       col="blue", pch=21)
+points(x = taskFour$t,
+       y = taskFour$Z,
+       col = "blue", pch=21)
+
+
+########################
+## Task 5: Algorithms ##
+########################
+
+# Function to compute spot rates from swap rates
+# swapRate: vector of swap rates
+# tenor: vector of swap tenors
+spotRate = function(swapRate, tenor) {
+  spotRates = numeric(length(tenor))
+  for (i in 1:length(tenor)) {
+    spotRates[i] = (1 + swapRate[i] * tenor[i])^(1/tenor[i]) - 1
+  }
+  return(spotRates)
+}
+
+# Function to bootstrap forward rates
+# swap_rates: vector of swap rates
+# tenors: vector of swap tenors
+# spot_rates: vector of spot rates
+bootstrapForwardRates = function(swap_rates, tenors, spot_rates) {
+  n = length(swap_rates)
+  forward_rates = numeric(n)
+  
+  for (i in 2:n) {
+    forward_rates[i] = ((1 + swap_rates[i] * tenors[i]) / (1 + spot_rates[i-1]) - 1) / (tenors[i] - tenors[i-1])
+  }
+  
+  return(forward_rates)
+}
+
+# Objective function: sum of squared errors
+# lambda: vector of lambda values
+# forward_rates: vector of forward rates
+# sigma: vector of implied volatilities
+# delta: time step
+volObjectiveFun <- function(lambda, forward_rates, sigma, delta) {
+  n = length(forward_rates)
+  model_volatilities <- numeric(n)
+  
+  for (i in 1:n) {
+    model_volatilities[i] <- sqrt(sum(lambda[1:i]^2) * delta)
+  }
+  
+  sum((model_volatilities - sigma)^2)
+}
+
+# Function to compute model volatilities
+# swaps: vector of swap rates
+# impliedVols: vector of implied volatilities
+# tenors: vector of swap tenors
+# delta: time step
+# bestGuessLambda: best guess for lambda
+modelVolatil = function(swaps,  impliedVols, tenors, delta, bestGuessLambda) {
+  spot = spotRate(swaps, tenors)
+  forward = bootstrapForwardRates(swaps, tenors, spot)
+  LambdaInit = rep(bestGuessLambda, length(forward))
+  result = optim(LambdaInit, volObjectiveFun, forward_rates = forward, sigma = impliedVols, delta = delta)
+  optimLambda = result$par
+  modelVols = sqrt(cumsum(optimLambda^2) * delta)
+  RMSE = sqrt(mean((modelVols - impliedVols)^2))
+  return(list(Volatilities = modelVols, RMSE = RMSE))
+}
+
+#####################
+## Task 5: Results ##
+#####################
+# loading data for model volatility calculation:
+delta = 0.5 # time step
+real = c("12-11") # date
+vols = c("EU2Y3LATM.ICAP", "EU3Y6LATM.ICAP", "EU4Y6LATM.ICAP", "EU5Y6LATM.ICAP", "EU7Y6LATM.ICAP", "EU10Y6LATM.ICAP", "EU12Y6LATM.ICAP", "EU15Y6LATM.ICAP", "EU20Y6LATM.ICAP") # implied volatilities from market data
+taskFiveVols = realiser(ratePicker(dat, vols, "2006-01-01", "2006-12-31"), real, 2006, 2006) # generating data frame
+taskFiveVols = as.numeric(taskFiveVols[, -1])
+taskFiveVols
+
+tenor = c(2, 3, 4, 5, 7, 10, 12, 15, 20) # tenors
+swaps = c("eurirs2y", "eurirs3y", "eurirs4y", "eurirs5y", "eurirs7y", "eurirs10y", "eurirs12y", "eurirs15y", "eurirs20y") # swaps
+taskFiveSwaps = realiser(ratePicker(dat, swaps, "2006-01-01", "2006-12-31"), real, 2006, 2006) # generating data frame
+taskFiveSwaps = as.numeric(taskFiveSwaps[, -1])
+taskFiveSwaps
+
+# Computing model volatilities:
+stationaryVolatility = modelVolatil(taskFiveSwaps, taskFiveVols, tenor, delta, bestGuessLambda = 0.01); stationaryVolatility
+
+#####################
+## Task 6: Testing ##
+#####################
+
+## Libor Market Model, Single Factor ##
+# L = vector of initial forward libor rates
+# Lambda = vector of stationary volatilities
+# dt = time step
+# K = number of time steps
+# N = number of simulations
+lmm.sf = function(L, Lambda, dt, K, N) {
+  ## Initialize output list
+  output = data.frame(k = numeric(), m = numeric(), Lambda = numeric(), `µm(Tk)` = numeric(), `W(Tk)` = numeric(), `Lm(Tk)` = numeric())  
+  ## Simulate Ns sims
+  for (n in 1:N) { # Loop over n simulations
+    L.prev = L[-1] # Previous libor rate
+    ## Simulate K time steps
+    for (k in 1:K) { # Loop for over time steps
+      if (k == 1) {
+        L.prev = L[-1] # Previous libor rate at time k = 1
+      } else {
+        L.prev = c(L[k], L.prev[-1]) # Previous libor rate at time k > 1
+      }
+      ## Simulate W(Tk)
+      Wk = rnorm(1)
+      ## Simulate m periods at time k
+      for (m in k:(length(L) - 1)) { # Loop over m periods at time k
+        sum.mu = 0 # initialize first joint of mu
+        ## Sum over i = k to m for the first part of mu
+        for (i in k:m) {
+          sum.mu = sum.mu + dt * L.prev[i - k + 1] * Lambda[m - k + 1] * Lambda[i - k + 1] / (1 + dt * L.prev[i - k + 1])
+        }
+        ## Calculate mu and Lm(Tk)
+        mu = sum.mu - Lambda[m - k + 1]^2 / 2 # calculate mu
+        L.new = L.prev[m - k + 1] * exp(mu * dt + sqrt(dt) * Lambda[m - k + 1] * Wk) # calculate new libor rate
+        ## Save output in output dataframe
+        output = rbind(output, data.frame(k = k, m = m, Lambda = Lambda[m - k + 1], `µm(Tk)` = mu, `W(Tk)` = Wk, `Lm(Tk)` = L.new))
+        L[m - k + 1] = L.new
+      }
+    }
+  }
+  ## Return Output dataframe
+  return(output)
+}
+
+# Inputs
+initForwards = bootstrapForwardRates(taskFiveSwaps, tenor, spotRate(taskFiveSwaps, tenor)); initForwards # initial forward rates
+initLambda = stationaryVolatility$Volatilities; initLambda # initial lambda values
+# Run simulation
+results = round(lmm.sf(L = initForwards, Lambda = initLambda, dt = 0.5, K = 1, N = 14), digits = 4); results # print results
