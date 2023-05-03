@@ -1,17 +1,17 @@
-###############################################
-## FIE446 Assignment Spring 2023, Group: ??? ##
-###############################################
-## Our script is structured as follows:       ##
-## 1. Alogrithms we made for the task.        ##
-## 2. Results for the task.                   ##     
-##                                            ##
-##                                            ##
-## Warning! The algorithms have function      ##
-## dependencies that cross tasks. For example ##
-## the swap spread algorithm depends on the   ##
-## digiCoupon algorithm. Etc. Do not clean    ##
-## environment during inspection! :-)         ##
-################################################
+#########################################################
+## FIE446 Assignment Spring 2023, Group: Deep Learners ##
+#########################################################
+## Our script is structured as follows:                ##
+## 1. Alogrithms we made for the task.                 ##
+## 2. Results for the task.                            ##     
+##                                                     ##
+##                                                     ##
+## Warning! The algorithms have function               ##
+## dependencies that cross tasks. For example          ##
+## the swap spread algorithm depends on the            ##
+## digiCoupon algorithm. Etc. Do not clean             ##
+## environment during inspection! :-)                  ##
+#########################################################
 
 # initialise environment
 rm(list=ls())
@@ -40,7 +40,6 @@ dat = assignmentDataCleaner(csv); str(dat) # cleaning the csv
 ########################
 ## Task 1: Algorithms ##
 ########################
-
 # Function to select rate and time period:
 # df = data frame
 # column = column name of the desired rate as a string
@@ -253,7 +252,6 @@ taskThree # Swap payments made by BST and MdP.
 ########################
 ## Task 4: Algorithms ##
 ########################
-
 # Year Fraction Function:
 # t1 = start date
 # t2 = end date
@@ -591,7 +589,6 @@ stationaryVolatility = modelVolatil(taskFiveSwaps, taskFiveVols, tenor, delta, b
 #######################
 ## Task 6: Algorithm ##
 #######################
-
 ## Libor Market Model, Single Factor ##
 # L = vector of initial forward libor rates
 # Lambda = vector of stationary volatilities
@@ -636,10 +633,10 @@ lmm.sf = function(L, Lambda, dt, K, N) {
 #####################
 ## Task 6: Results ##
 #####################
-# Usin the LMM single-factor model we derived from class, we attempt to simulate the forward rates.
+# Using the LMM single-factor model we derived from class, we attempt to simulate the forward rates.
 # We use the stationary volatilities from the model volatility calculation as the input for the simulation.
 # We use the initial forward rates from the bootstrap as the input for the simulation.
-# Function should work perfectly so any issues will arise from inputs.
+# Function should work, any issues will arise from inputs.
 
 # Inputs
 initForwards = bootstrapForwardRates(taskFiveSwaps, tenor, spotRate(taskFiveSwaps, tenor)); initForwards # initial forward rates
@@ -705,3 +702,8 @@ returns = diff(log(initForwards[-1])) # assuming the returns follow a log-normal
 # Calculating the VaR
 VaR = computeVaR(returns)
 print(VaR)
+
+####################
+## Final Comments ##
+####################
+# We found the assignment quite challenging.
