@@ -675,7 +675,7 @@ computeVaR = function(returns, confidenceLevel = 0.95) {
 ########################
 ## Task 7: Results(?) ##
 ########################
-# We are not exactly sure how to do this 100% correctly.
+# We are not exactly sure how to do this.
 # We settled on a discounted cashflow method, knowing it is not 100% correct.
 # The VaR and Spreads algorithms should be right nonetheless.
 
