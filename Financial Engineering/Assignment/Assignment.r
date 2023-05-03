@@ -19,7 +19,7 @@ rm(list=ls())
 ################################
 ## Assigment: Data Processing ##
 ################################
-# Packaging in the cleaning into a function for brevity
+# Packaging the cleaning of the data into a function for brevity
 # df = data frame
 assignmentDataCleaner = function(df) {
     dat = df[-1,-1] # removing fluff
@@ -33,7 +33,7 @@ assignmentDataCleaner = function(df) {
     return(dat) # returning "cleaned" data (still NAs to keep in mind)
 }
 
-# Loading and cleaning data
+# Loading and cleaning data (only change the file path, not anything else).
 csv = read.csv("C:/Users/vebky/FIE446/Assignment/EUR-Market-Data.csv") # reading in csv
 dat = assignmentDataCleaner(csv); str(dat) # cleaning the csv
 
@@ -94,7 +94,7 @@ swapSpread = function(df, rateColumn, lower, upper, coupon) {
 # DigiCoupon:
 # prevRate = previous rate
 digiCoupon = function(prevRate) {
-    ifelse(prevRate >= 0.02 & prevRate <= 0.06, 0.005, 0)
+    ifelse(prevRate >= 0.02 & prevRate <= 0.06, 0.005, 0) # computing coupon
 }
 
 #####################
@@ -261,12 +261,12 @@ taskThree # Swap payments made by BST and MdP.
 # Desc:
 # This function computes the year fraction between two dates given a day count convention.
 delta = function(t1, t2, dcount) {
-  if (dcount == "act360") {
+  if (dcount == "act360") { # actual/360
     d1 = as.Date(t1)
     d2 = as.Date(t2)
     days = as.numeric(d2 - d1)
     delta = days / 360
-  } else if (dcount == "act365") {
+  } else if (dcount == "act365") { # actual/365
     d1 = as.Date(t1)
     d2 = as.Date(t2)
     days = as.numeric(d2 - d1)
@@ -283,7 +283,7 @@ delta = function(t1, t2, dcount) {
 # Desc:
 # This function computes the convexity adjustment for a forward rate.
 con.adj = function(F, T1, T2, sigma){
-  f0T1T2 = F - (sigma^2*T1*T2)/2
+  f0T1T2 = F - (sigma^2*T1*T2)/2 # forward rate
   return(f0T1T2)
 }
 
@@ -355,16 +355,15 @@ valueExtract = function(df, rates, year, month, day) {
 # DTM = days to maturity
 # dcount = day count convention
 matValueExtract = function(df, rates, year, month, day, maturity, dcount) {
-  val = valueExtract(df, rates, year, month, day)
-  mat = delta(as.Date(paste(year, month, day, sep="-")), maturity, dcount)
+  val = valueExtract(df, rates, year, month, day) # extracting values
+  mat = delta(as.Date(paste(year, month, day, sep="-")), maturity, dcount) # extracting maturities
   mat_vec = c() # initializing vector
   for (i in 1:length(rates)) { # looping through rates
     mat_vec = c(mat_vec, mat[[i]]) # extracting values
   }
-  fin = list(val, mat_vec)
-  # rename list elements
-  names(fin) = c("price", "maturity")
-  return(fin)
+  fin = list(val, mat_vec) # creating list
+  names(fin) = c("price", "maturity") # naming list
+  return(fin) # return list
   }
 
 # Future value
@@ -464,46 +463,44 @@ bootstrap = function(ON, MM, Fut, IRS) {
 ## Task 4: Initialize Data ##
 #############################
 # Bootstrap the discount curve to market data obtained on December 11, 2006.
+# We use the same function as we derived from class. We use functions we created
+# for this assignment to get the exact values out of the dat dataframe.
+# We declare the names of the rates used and their associated maturities.
+# The maturities we found ourselves using a calendar and might not be optimal.
+
 # Overnight deposits
 onRates = c("eurond", "eurtnd") # overnight deposits
 onDep = valueExtract(dat, onRates, 2006, 12, 11) # fetching rates
-onDep
+onDep # printing rates
 
 # Money Market deposits
 mmRates = c("euriborswd", "euribor1md") # money market deposits
 mmMats = c("2006-12-18", "2007-01-11") # maturities
 mmDep = matValueExtract(dat, mmRates, 2006, 12, 11, maturity = mmMats, dcount = "act360") # fetching rates and maturities
-mmDep
+mmDep # printing rates
 
 # Futures
 futRates = c("FEIcm1", "FEIcm2", "FEIcm3", "FEIcm4", "FEIcm5") # futures
 futMats = c("2007-01-15", "2007-06-12", "2007-09-11", "2007-12-11", "2008-03-11", "2008-06-11") # maturities
 futDep = futureValue(dat, futRates, 2006, 12, 11, maturity = futMats, dcount = "act360", init = TRUE) # fetching rates and maturities
-futDep
+futDep # printing rates
 
 # Swaps
 swapRates = c("eurirs2y", "eurirs3y", "eurirs4y", "eurirs5y", "eurirs7y", "eurirs10y", "eurirs12y", "eurirs15y", "eurirs20y") # swaps
 swapMats = c("2008-12-11", "2009-12-13", "2010-12-12", "2011-12-11", "2013-12-11", "2016-12-11", "2018-12-11", "2021-12-12", "2026-12-13") # maturities
 swapDep = matValueExtract(dat, swapRates, 2006, 12, 11, maturity = swapMats, dcount = "act360") # fetching rates and maturities
-swapDep
+swapDep # printing rates
 
 ##############################
 ## Task 4: Results and Plot ##
 ##############################
 # Computing discount factors:
-taskFour = bootstrap(ON = onDep, MM = mmDep, Fut = futDep, IRS = swapDep)
+taskFour = bootstrap(ON = onDep, MM = mmDep, Fut = futDep, IRS = swapDep) # bootstrap function
 taskFour # Result: Discount Factors and their respective maturities.
 
 # Plotting discount factors:
-plot(x = taskFour$t,
-     y = taskFour$Z,
-     type = "l",
-     xlab = "Time (Years)",
-     ylab = "Discount Factor")
-points(x = taskFour$t,
-       y = taskFour$Z,
-       col = "blue", pch=21)
-
+plot(x = taskFour$t, y = taskFour$Z, type = "l", xlab = "Time (Years)", ylab = "Discount Factor") # plot discount factors
+points(x = taskFour$t, y = taskFour$Z, col = "blue", pch = 21) # add points to plot to show specific Z entries
 
 ########################
 ## Task 5: Algorithms ##
@@ -514,10 +511,10 @@ points(x = taskFour$t,
 # tenor: vector of swap tenors
 spotRate = function(swapRate, tenor) {
   spotRates = numeric(length(tenor))
-  for (i in 1:length(tenor)) {
-    spotRates[i] = (1 + swapRate[i] * tenor[i])^(1/tenor[i]) - 1
+  for (i in 1:length(tenor)) { # loop over swap rates
+    spotRates[i] = (1 + swapRate[i] * tenor[i])^(1/tenor[i]) - 1 # spot rates
   }
-  return(spotRates)
+  return(spotRates) # return vector of spot rates
 }
 
 # Function to bootstrap forward rates
@@ -525,14 +522,14 @@ spotRate = function(swapRate, tenor) {
 # tenors: vector of swap tenors
 # spot_rates: vector of spot rates
 bootstrapForwardRates = function(swap_rates, tenors, spot_rates) {
-  n = length(swap_rates)
-  forward_rates = numeric(n)
+  n = length(swap_rates) # number of swap rates
+  forward_rates = numeric(n) # vector of forward rates
   
-  for (i in 2:n) {
-    forward_rates[i] = ((1 + swap_rates[i] * tenors[i]) / (1 + spot_rates[i-1]) - 1) / (tenors[i] - tenors[i-1])
+  for (i in 2:n) { # loop over swap rates
+    forward_rates[i] = ((1 + swap_rates[i] * tenors[i]) / (1 + spot_rates[i-1]) - 1) / (tenors[i] - tenors[i-1]) # forward rates
   }
   
-  return(forward_rates)
+  return(forward_rates) # return vector of forward rates
 }
 
 # Objective function: sum of squared errors
@@ -541,14 +538,14 @@ bootstrapForwardRates = function(swap_rates, tenors, spot_rates) {
 # sigma: vector of implied volatilities
 # delta: time step
 volObjectiveFun <- function(lambda, forward_rates, sigma, delta) {
-  n = length(forward_rates)
-  model_volatilities <- numeric(n)
+  n = length(forward_rates) # number of forward rates
+  model_volatilities <- numeric(n) # vector of model volatilities
   
-  for (i in 1:n) {
-    model_volatilities[i] <- sqrt(sum(lambda[1:i]^2) * delta)
+  for (i in 1:n) { # loop over forward rates
+    model_volatilities[i] <- sqrt(sum(lambda[1:i]^2) * delta) # model volatilities
   }
   
-  sum((model_volatilities - sigma)^2)
+  sum((model_volatilities - sigma)^2) # sum of squared errors
 }
 
 # Function to compute model volatilities
@@ -558,19 +555,22 @@ volObjectiveFun <- function(lambda, forward_rates, sigma, delta) {
 # delta: time step
 # bestGuessLambda: best guess for lambda
 modelVolatil = function(swaps,  impliedVols, tenors, delta, bestGuessLambda) {
-  spot = spotRate(swaps, tenors)
-  forward = bootstrapForwardRates(swaps, tenors, spot)
-  LambdaInit = rep(bestGuessLambda, length(forward))
-  result = optim(LambdaInit, volObjectiveFun, forward_rates = forward, sigma = impliedVols, delta = delta)
-  optimLambda = result$par
-  modelVols = sqrt(cumsum(optimLambda^2) * delta)
-  RMSE = sqrt(mean((modelVols - impliedVols)^2))
+  spot = spotRate(swaps, tenors) # spot rates
+  forward = bootstrapForwardRates(swaps, tenors, spot) # forward rates
+  LambdaInit = rep(bestGuessLambda, length(forward)) # initial lambda values
+  result = optim(LambdaInit, volObjectiveFun, forward_rates = forward, sigma = impliedVols, delta = delta) # optimization
+  optimLambda = result$par # optimal lambda values
+  modelVols = sqrt(cumsum(optimLambda^2) * delta) # model volatilities
+  RMSE = sqrt(mean((modelVols - impliedVols)^2)) # RMSE
   return(list(Volatilities = modelVols, RMSE = RMSE))
 }
 
 #####################
 ## Task 5: Results ##
 #####################
+# We take the ICAP implied volatilities from the market data as the implied volatilities.
+# Then we use the model to compute the model volatilities, with swaps.
+
 # loading data for model volatility calculation:
 delta = 0.5 # time step
 real = c("12-11") # date
@@ -588,9 +588,9 @@ taskFiveSwaps
 # Computing model volatilities:
 stationaryVolatility = modelVolatil(taskFiveSwaps, taskFiveVols, tenor, delta, bestGuessLambda = 0.01); stationaryVolatility
 
-#####################
-## Task 6: Testing ##
-#####################
+#######################
+## Task 6: Algorithm ##
+#######################
 
 ## Libor Market Model, Single Factor ##
 # L = vector of initial forward libor rates
@@ -633,8 +633,75 @@ lmm.sf = function(L, Lambda, dt, K, N) {
   return(output)
 }
 
+#####################
+## Task 6: Results ##
+#####################
+# Usin the LMM single-factor model we derived from class, we attempt to simulate the forward rates.
+# We use the stationary volatilities from the model volatility calculation as the input for the simulation.
+# We use the initial forward rates from the bootstrap as the input for the simulation.
+# Function should work perfectly so any issues will arise from inputs.
+
 # Inputs
 initForwards = bootstrapForwardRates(taskFiveSwaps, tenor, spotRate(taskFiveSwaps, tenor)); initForwards # initial forward rates
 initLambda = stationaryVolatility$Volatilities; initLambda # initial lambda values
+
 # Run simulation
-results = round(lmm.sf(L = initForwards, Lambda = initLambda, dt = 0.5, K = 1, N = 14), digits = 4); results # print results
+results = lmm.sf(L = initForwards, Lambda = initLambda, dt = 0.25, K = 7, N = 1); results # print results
+
+#######################
+## Task 7: Algorithm ##
+#######################
+# Function to price the exotic swap
+priceExoticSwap = function(forwardRates, tenor, paymentDates, swapMaturity) {
+  cashFlows = numeric(length(paymentDates))
+  discountFactors = numeric(length(paymentDates))
+  
+  # Compute the cash flows and discount factors at each payment date
+  for (i in 1:length(paymentDates)) {
+    cashFlows[i] = ifelse(paymentDates[i] <= swapMaturity, forwardRates[i], 0)
+    discountFactors[i] = (1 + cashFlows[i])^(-tenor[i])
+  }
+  
+  # The price of the swap is the present value of the future cash flows
+  swapPrice = sum(cashFlows * discountFactors)
+  
+  return(swapPrice)
+}
+
+# Function to compute the Value-at-Risk (VaR) of the exotic swap
+computeVaR = function(returns, confidenceLevel = 0.95) {
+  VaR = quantile(returns, probs = 1 - confidenceLevel)
+  return(VaR)
+}
+
+########################
+## Task 7: Results(?) ##
+########################
+# We are not exactly sure how to do this 100% correctly.
+# We settled on a discounted cashflow method, knowing it is not 100% correct.
+# The VaR and Spreads algorithms should be right nonetheless.
+
+# Fetching data:
+real = c("06-11", "12-11") # realised dates
+underlying = realiser(ratePicker(dat, "euribor6md", "2007-01-01", "2020-12-31"), real, 2007, 2020) # generating data frame
+underlying # underlying rate for the exotic swap
+
+# Computing semiannual spread from first payment date to last payment date:
+taskSevenSpread = swapSpread(underlying, "euribor6md", lower = 0.02, upper = 0.06, digiCoupon) # computing quarterly spread
+taskSevenSpread # spreads of the underlying following the contract
+
+# Inputs for the exotic swap pricing
+tenor = c(2, 3, 4, 5, 7, 10, 12, 15, 20) # tenors
+paymentDates = seq(from = as.Date("2007-01-01"), to = as.Date("2020-12-11"), by = "6 months")
+swapMaturity = 14 # years
+
+# Pricing the exotic swap
+swapPrice = priceExoticSwap(forwardRates = initForwards, tenor = tenor, paymentDates = paymentDates, swapMaturity = swapMaturity)
+print(swapPrice)
+
+# Calculating the returns of the exotic swap
+returns = diff(log(initForwards[-1])) # assuming the returns follow a log-normal distribution
+
+# Calculating the VaR
+VaR = computeVaR(returns)
+print(VaR)
