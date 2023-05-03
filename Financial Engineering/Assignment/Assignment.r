@@ -707,4 +707,4 @@ print(VaR)
 ####################
 ## Final Comments ##
 ####################
-# We found the assignment quite challenging.
+# We found the assignment very challenging.
