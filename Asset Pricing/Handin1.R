@@ -12,14 +12,12 @@ eOutcome = exp(0.1+0.4^2/2); eOutcome
 # Using the log utility of U(W) = log(W), evaluate two cases.
 # A
 w = 5000 
-unInsured = 0.5*log(w+1000) + 0.5*log(w-1000)
-insured = log(w-125)
+unInsured = 0.5*log(w+1000) + 0.5*log(w-1000); insured = log(w-125)
 unInsured - insured # Positive utility, prefers not to buy insurance
 
 # B
 w = 4000
-unInsured= 0.5*log(w+1000) + 0.5*log(w-1000)
-insured = log(w-125)
+unInsured= 0.5*log(w+1000) + 0.5*log(w-1000); insured = log(w-125)
 unInsured - insured # Negative utility, prefers to buy insurance
 
 # Problem 3
@@ -30,5 +28,5 @@ unInsured - insured # Negative utility, prefers to buy insurance
 w = 100000
 eUtility = 0.1*log(w-99999) + 0.1*log(w-50000) + 0.8*log(w)
 
-# Find X such that eUtility = log(w-X)
+# Find X such that eUtility = log(w - X)
 X = w - exp(eUtility); X
