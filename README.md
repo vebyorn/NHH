@@ -1,18 +1,4 @@
 # NHH
-#### Notebooks for School
-
-These notebooks were created as part of, or for intended use in, assignments, projects and assessments of similar nature at the Norwegian School of Economics. 
-Any practical implementation of the files in this repository is highly discouraged. Feel free to take a peek though. :-)
-
-#### Current repositories:
-Financial Engineering: 
-Primarily concerned with the creation of algorithms related to exotic options pricing and interest rate derivatives.
-
-Advanced Derivatives: 
-Examines the theoretical and analytical aspects of financial derivatives calculus with examples in the shape of R-scripts.
-
-Applicaton Development in Python: 
-Creating web-hosted interactive plots and data visualisation applications.
-
-Deep Learning (with Applications to Finance):
-Files relating to my group's term paper where we use ANNs to detect fradulent cryptocurrencies by using textual analysis on promotional crypto tweets.
+#### Notebooks
+These are files, usually class notes and assigments, I wrote down while studying at NHH Norwegian School of Economics.
+Topics inclide: portfolio theory, volatility measures, monte carlo simulations, machine learning and dashboard development.
